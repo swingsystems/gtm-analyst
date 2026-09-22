@@ -19,7 +19,39 @@
 - Every persona executes as its own Snowflake role. No code path may use `ACCOUNTADMIN` or `SYSADMIN` at query time.
 - Python 3.11+. Line length 100. `ruff` clean before every commit.
 
----
+## Execution Mode
+
+Hybrid, split at the Snowflake boundary.
+
+- **Tasks 1–6 — subagent-driven.** Pure Python, fully specified, unit-testable, no external state.
+- **Tasks 7–13 — inline.** Anything touching live Snowflake, dbt runs, credentials, or git history.
+
+Delegate an ambiguous task only if it introduces no names consumed elsewhere, is fully validated by
+existing tests without human interpretation, and cannot require modifying Task 2–5 files.
+
+**Standing rule for every executor, inline or delegated:** files under `evals/spec/` and `gaa/spec/`
+are frozen once Task 5 is committed. If a later task appears to need a change there, stop and
+escalate rather than editing. A commit touching spec files after Task 6 breaks Task 13 permanently,
+and it cannot be repaired by rewriting history — rewriting is the thing the history exists to
+disprove.
+
+## Vertical Slice Before Breadth
+
+Snowflake governance iteration is the part this plan most underestimates. Row access policies,
+masking, secure views, the grant graph, dbt-created objects, and connector auth all interact, and
+the first attempt will not work.
+
+So: **prove the mechanism on one question before building for twelve.**
+
+- Task 4 still authors and commits **all twelve** questions and all twelve reference SQL files. This
+  is not negotiable and is not what the slice defers — every question must predate the models, or
+  Task 13 fails for the ones that don't.
+- Tasks 7–11 build only what `q001` needs first: `stg_bookings`, `stg_accounts`, `dim_account`,
+  `dim_fiscal_calendar`, `fct_bookings`, one row access policy, three roles. Run `q001` as all three
+  personas and confirm three different correct answers.
+- Only once that end-to-end proof passes do the remaining marts, policies, and questions get built.
+
+If the mechanism does not work, this surfaces it in hour two rather than week two.
 
 ## File Structure
 
@@ -1486,20 +1518,94 @@ GRANT USAGE ON WAREHOUSE GAA_WH TO ROLE GAA_SALES_DIR_EMEA;
 GRANT USAGE ON WAREHOUSE GAA_WH TO ROLE GAA_REP_INDIVIDUAL;
 ```
 
-- [ ] **Step 4: Apply and verify manually**
+- [ ] **Step 4: Write scripts/apply_governance.py**
 
-Run each file with the Snowflake CLI or worksheet, then:
+Governance SQL is applied by a logged, re-runnable script — never pasted into a worksheet. Two
+reasons: a `dbt run` that recreates a table **drops the policies attached to it**, so this will be
+re-run many times; and an unlogged manual step cannot be debugged or handed to anyone else.
+
+```python
+# scripts/apply_governance.py
+"""Apply governance DDL in order, idempotently, with a log of what ran.
+
+Every statement is expected to be re-runnable: CREATE ... IF NOT EXISTS, or an
+ALTER that is safe to repeat. dbt drops row access and masking policies whenever it
+recreates a table, so this script is run after every dbt build, not once.
+"""
+import sys
+from pathlib import Path
+
+import click
+
+from gaa.config import load_settings
+from gaa.connection import session_for_persona
+from gaa.spec.models import Persona
+
+GOVERNANCE_DIR = Path(__file__).parent.parent / "warehouse" / "governance"
+ADMIN = Persona(name="ADMIN", snowflake_role="SYSADMIN", description="DDL only")
+
+
+def _statements(sql: str) -> list[str]:
+    return [s.strip() for s in sql.split(";") if s.strip() and not s.strip().startswith("--")]
+
+
+@click.command()
+@click.option("--only", default=None, help="substring match on filename, e.g. '03_row'")
+def main(only: str | None) -> None:
+    settings = load_settings()
+    files = sorted(GOVERNANCE_DIR.glob("*.sql"))
+    if only:
+        files = [f for f in files if only in f.name]
+    if not files:
+        click.echo("no governance files matched", err=True)
+        sys.exit(1)
+
+    with session_for_persona(ADMIN, settings) as conn:
+        cursor = conn.cursor()
+        for path in files:
+            click.echo(f"--- {path.name}")
+            for statement in _statements(path.read_text()):
+                preview = " ".join(statement.split())[:90]
+                try:
+                    cursor.execute(statement)
+                    click.echo(f"    ok   {preview}  [{cursor.sfqid}]")
+                except Exception as exc:
+                    click.echo(f"    FAIL {preview}\n         {exc}", err=True)
+                    sys.exit(1)
+    click.echo("governance applied")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+Note the role: this script is the one place a privileged role is used, and it runs DDL only. No
+query path in `gaa/` may use it — that separation is what the bypass tests in Task 10 assert.
+
+- [ ] **Step 5: Apply and verify**
+
+Run: `uv run python scripts/apply_governance.py --only 01_roles && uv run python scripts/apply_governance.py --only 02_masking && uv run python scripts/apply_governance.py --only 05_grants`
+
+Then verify the masking took effect:
 ```sql
 USE ROLE GAA_REP_INDIVIDUAL;
 SELECT ACCOUNT_NAME FROM GAA.MARTS.DIM_ACCOUNT LIMIT 1;
 ```
 Expected: a masked value of the form `ACCOUNT-xxxxxxxx`, not a real name.
 
-- [ ] **Step 5: Commit**
+Add to the Makefile:
+```makefile
+.PHONY: governance
+governance:
+	uv run python scripts/apply_governance.py
+```
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add warehouse/governance/01_roles.sql warehouse/governance/02_masking_policies.sql warehouse/governance/05_grants.sql
-git commit -m "feat(governance): persona roles, grants, and account-name masking"
+git add warehouse/governance/01_roles.sql warehouse/governance/02_masking_policies.sql \
+        warehouse/governance/05_grants.sql scripts/apply_governance.py Makefile
+git commit -m "feat(governance): persona roles, grants, masking, and a logged apply script"
 ```
 
 ---
@@ -1685,7 +1791,9 @@ GRANT SELECT ON VIEW V_ACCOUNT  TO ROLE GAA_REP_INDIVIDUAL;
 
 - [ ] **Step 6: Apply, then run the boundary tests**
 
-Run: `uv run pytest tests/test_governance_boundary.py -v`
+Run: `uv run python scripts/apply_governance.py --only 03_row && uv run python scripts/apply_governance.py --only 04_secure`
+
+Then: `uv run pytest tests/test_governance_boundary.py -v`
 Expected: 5 passed against a live account
 
 - [ ] **Step 7: Commit**
