@@ -117,20 +117,32 @@ Non-negotiables:
 
 ### 2. Governance (`warehouse/governance/`)
 
-Snowflake-native: RBAC hierarchy, row access policies, masking policies, secure views. Three
-reference personas:
+Snowflake-native, and built on Standard Edition so that any account can deploy it. Row access
+policies and masking policies are Enterprise-gated; the development account is Standard, so the
+boundary is implemented as **one schema per persona containing identically-named secure views**,
+with each role granted exactly one schema. See `docs/adr/0001-governance-on-standard-edition.md`
+for the decision, the alternatives, and what this costs.
 
-| Persona | Sees | Analogue |
-|---|---|---|
-| `FINANCE_GLOBAL` | all territories | corporate FP&A |
-| `SALES_DIR_EMEA` | EMEA only | regional sales leadership |
-| `REP_INDIVIDUAL` | own accounts only | individual contributor |
+| Persona | Schema | Sees | Analogue |
+|---|---|---|---|
+| `FINANCE_GLOBAL` | `GAA.FINANCE` | all territories, unmasked names | corporate FP&A |
+| `SALES_DIR_EMEA` | `GAA.EMEA` | EMEA only, masked names | regional sales leadership |
+| `REP_INDIVIDUAL` | `GAA.REP` | own accounts only, masked names | individual contributor |
 
-The personas generate **leak tests**. Demonstrating that row access policies filter rows proves
-nothing — every Snowflake engineer knows that. The claim is that an *agent* cannot get around them,
-and the conformance suite asserts it against every bypass path: role switching, default-role leakage,
-ownership chaining, querying unprotected base tables instead of secure views, and inferring
-restricted values from aggregates.
+Reference SQL uses **unqualified** table names. Each persona session sets its own default schema,
+so identical SQL text resolves to a different view per persona — which is what keeps "same
+question, three different correct answers" a real property rather than three different queries.
+Masking is emulated inside the restricted views by hashing `ACCOUNT_NAME`, preserving row counts
+while changing distinct values.
+
+The personas generate **leak tests**. Demonstrating that a filtered view returns fewer rows proves
+nothing. The claim is that an *agent* cannot get around the boundary, and the conformance suite
+asserts it against every bypass path: switching roles, reading another persona's schema, reading
+the base tables in `MARTS`, and inferring restricted values from aggregates.
+
+Because grants rather than table-attached policies carry the boundary here, a mis-grant exposes a
+whole schema. The conformance suite therefore tests grants adversarially, and the threat model
+treats mis-granted schema access as a primary failure mode.
 
 ### 3. Semantic layer (`semantic/`)
 

@@ -5,9 +5,21 @@ from gaa.spec.models import ExpectedResult, Invariant, Persona, Question
 from gaa.spec.taxonomy import FailureCategory
 
 
-def test_persona_requires_role():
-    p = Persona(name="FINANCE_GLOBAL", snowflake_role="GAA_FINANCE_GLOBAL", description="FP&A")
+def test_persona_requires_role_and_schema():
+    p = Persona(
+        name="FINANCE_GLOBAL",
+        snowflake_role="GAA_FINANCE_GLOBAL",
+        snowflake_schema="FINANCE",
+        description="FP&A",
+    )
     assert p.snowflake_role == "GAA_FINANCE_GLOBAL"
+    assert p.snowflake_schema == "FINANCE"
+
+
+def test_persona_without_schema_is_rejected():
+    """The schema is load-bearing: it is what makes identical SQL resolve per persona."""
+    with pytest.raises(ValidationError):
+        Persona(name="X", snowflake_role="R", description="d")
 
 
 def test_question_rejects_inline_sql_field():

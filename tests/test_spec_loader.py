@@ -10,6 +10,7 @@ def _write_spec(root, question_yaml, sql_files=("q001_x.sql",)):
         "personas:\n"
         "  - name: FINANCE_GLOBAL\n"
         "    snowflake_role: GAA_FINANCE_GLOBAL\n"
+        "    snowflake_schema: FINANCE\n"
         "    description: FP&A\n"
     )
     (root / "invariants.yaml").write_text("invariants: []\n")

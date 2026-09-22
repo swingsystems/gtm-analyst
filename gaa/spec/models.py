@@ -6,10 +6,16 @@ _SQL_KEYWORDS = ("select ", "insert ", "update ", "delete ", "with ", "drop ", "
 
 
 class Persona(BaseModel):
-    """A caller identity. Maps one-to-one onto a Snowflake role."""
+    """A caller identity. Maps one-to-one onto a Snowflake role AND schema.
+
+    The schema matters as much as the role: reference SQL uses unqualified table
+    names, so the session's default schema is what makes identical SQL resolve to a
+    different view per persona. See docs/adr/0001-governance-on-standard-edition.md.
+    """
 
     name: str
     snowflake_role: str
+    snowflake_schema: str
     description: str
 
 
