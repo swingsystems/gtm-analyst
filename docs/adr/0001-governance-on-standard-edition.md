@@ -53,6 +53,29 @@ remains meaningful and unmodified.
 `Persona` gains a `snowflake_schema` field alongside `snowflake_role`. This change lands before the
 Task 5 freeze, which is why the freeze begins at Task 5 rather than at Task 2.
 
+## Validation
+
+The mechanism was proven against the live account before any dependent work was built, using
+throwaway objects since torn down:
+
+```
+Identical SQL: SELECT REGION, SUM(AMOUNT) FROM V_BOOKINGS GROUP BY REGION
+
+role=GAA_P_FIN   schema=FINANCE -> [('AMER', 200), ('APAC', 300), ('EMEA', 100)]
+role=GAA_P_EMEA  schema=EMEA    -> [('EMEA', 100)]
+
+Bypass attempts from the EMEA role:
+  FINANCE.V_BOOKINGS -> blocked
+  MARTS.FCT_BOOKINGS -> blocked
+```
+
+**A caveat found during validation.** Blocked access returns `002003 SQL compilation error`, not an
+authorization error — Snowflake hides objects a role cannot see rather than confirming they exist.
+This is good for information leakage and awkward for testing: a bypass test asserting "this raises"
+would also pass if the object were simply absent, which is a weaker guarantee than it appears. The
+conformance suite therefore asserts each object is readable by its owning role *before* asserting it
+is unreachable by the others, so the test cannot pass vacuously.
+
 ## Consequences
 
 **Preserved.** Same question, same SQL, three different correct answers. Enforcement lives in the
