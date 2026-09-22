@@ -83,8 +83,8 @@ spending a credit. This tier exists solely so a skeptical reader reaches the "ah
 whether to invest.
 
 **Tier 1 — own Snowflake account, under one hour.** `make deploy` provisions every object from
-scratch: warehouse, roles, row access policies, masking policies, secure views, dbt models, semantic
-views, sample data, three personas. `make eval` runs the suite and regenerates the results table.
+scratch: warehouse, roles, per-persona schemas, secure views, dbt models, semantic views, sample
+data, three personas. `make eval` runs the suite and regenerates the results table.
 `make teardown` removes everything. Credit cost for a full deploy-and-eval cycle is documented.
 
 **Tier 2 — own models.** The bring-your-own-models guide: swap the reference warehouse for existing

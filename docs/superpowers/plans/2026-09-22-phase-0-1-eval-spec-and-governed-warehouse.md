@@ -37,9 +37,9 @@ disprove.
 
 ## Vertical Slice Before Breadth
 
-Snowflake governance iteration is the part this plan most underestimates. Row access policies,
-masking, secure views, the grant graph, dbt-created objects, and connector auth all interact, and
-the first attempt will not work.
+Snowflake governance iteration is the part this plan most underestimates. Per-persona schemas,
+secure views, the grant graph, dbt-created objects, and connector auth all interact, and the first
+attempt will not work.
 
 So: **prove the mechanism on one question before building for twelve.**
 
@@ -47,7 +47,8 @@ So: **prove the mechanism on one question before building for twelve.**
   is not negotiable and is not what the slice defers — every question must predate the models, or
   Task 13 fails for the ones that don't.
 - Tasks 7–11 build only what `q001` needs first: `stg_bookings`, `stg_accounts`, `dim_account`,
-  `dim_fiscal_calendar`, `fct_bookings`, one row access policy, three roles. Run `q001` as all three
+  `dim_fiscal_calendar`, `fct_bookings`, the three persona schemas and views, three roles. Run
+  `q001` as all three
   personas and confirm three different correct answers.
 - Only once that end-to-end proof passes do the remaining marts, policies, and questions get built.
 
@@ -781,12 +782,13 @@ expected:
 ```sql
 -- evals/spec/reference_sql/q001_bookings_by_region.sql
 -- Ground truth for q001. Written against base marts, independent of the semantic
--- layer. Grain: one row per region. Row access policies apply to the executing role,
--- so this same statement yields persona-differentiated results by design.
+-- layer. Grain: one row per region. V_BOOKINGS is UNQUALIFIED on purpose: the session
+-- default schema differs per persona, so this one statement yields three different
+-- correct answers. See docs/adr/0001-governance-on-standard-edition.md.
 SELECT
     b.REGION                    AS REGION,
     SUM(b.AMOUNT)               AS VALUE
-FROM FCT_BOOKINGS AS b
+FROM V_BOOKINGS AS b
 WHERE b.FISCAL_QUARTER = 'FY26-Q3'
   AND b.IS_INTERCOMPANY = FALSE
 GROUP BY b.REGION
@@ -1345,8 +1347,8 @@ FROM {{ ref('stg_accounts') }}
 
 ```sql
 -- warehouse/models/marts/fct_bookings.sql
--- Grain: one row per booking. REGION is denormalised from the account so that
--- row access policies have a column to filter on without a join.
+-- Grain: one row per booking. REGION and OWNER_REP_ID are denormalised from the
+-- account so the persona views can filter without a join.
 SELECT
     b.BOOKING_ID,
     b.ACCOUNT_ID,
@@ -1449,20 +1451,29 @@ git commit -m "feat(warehouse): fiscal calendar, territory SCD, bookings and ARR
 
 ---
 
-### Task 9: Snowflake roles, grants, and masking policies
+### Task 9: Roles, per-persona schemas, and grants
 
 **Files:**
-- Create: `warehouse/governance/01_roles.sql`, `warehouse/governance/02_masking_policies.sql`, `warehouse/governance/05_grants.sql`
+- Create: `warehouse/governance/01_roles_and_schemas.sql`, `warehouse/governance/02_grants.sql`,
+  `scripts/apply_governance.py`
+- Modify: `Makefile`
 
 **Interfaces:**
 - Consumes: mart tables from Task 8.
-- Produces: roles `GAA_LOADER`, `GAA_FINANCE_GLOBAL`, `GAA_SALES_DIR_EMEA`, `GAA_REP_INDIVIDUAL`; masking policy `MASK_ACCOUNT_NAME` applied to `DIM_ACCOUNT.ACCOUNT_NAME`; session-tag-free design — the policies read `CURRENT_ROLE()` only.
+- Produces: roles `GAA_LOADER`, `GAA_FINANCE_GLOBAL`, `GAA_SALES_DIR_EMEA`, `GAA_REP_INDIVIDUAL`;
+  schemas `GAA.FINANCE`, `GAA.EMEA`, `GAA.REP`; `scripts/apply_governance.py` as the only privileged
+  code path in the repository.
 
-- [ ] **Step 1: Write 01_roles.sql**
+Row access policies and masking policies are Enterprise-only and this account is Standard. See
+`docs/adr/0001-governance-on-standard-edition.md`. The boundary is schema-scoped grants instead.
+
+- [ ] **Step 1: Write 01_roles_and_schemas.sql**
 
 ```sql
--- warehouse/governance/01_roles.sql
--- Four roles. GAA_LOADER builds models; the three persona roles only ever read.
+-- warehouse/governance/01_roles_and_schemas.sql
+-- Four roles, three persona schemas. Persona roles are deliberately NOT nested:
+-- nesting would let a rep inherit finance visibility, which is the exact leak the
+-- evaluation exists to catch.
 USE ROLE SECURITYADMIN;
 
 CREATE ROLE IF NOT EXISTS GAA_LOADER;
@@ -1470,67 +1481,51 @@ CREATE ROLE IF NOT EXISTS GAA_FINANCE_GLOBAL;
 CREATE ROLE IF NOT EXISTS GAA_SALES_DIR_EMEA;
 CREATE ROLE IF NOT EXISTS GAA_REP_INDIVIDUAL;
 
--- Persona roles are deliberately NOT nested under one another. Nesting would let a
--- rep inherit finance visibility, which is the leak the eval is designed to catch.
-GRANT ROLE GAA_LOADER            TO ROLE SYSADMIN;
-GRANT ROLE GAA_FINANCE_GLOBAL    TO ROLE SYSADMIN;
-GRANT ROLE GAA_SALES_DIR_EMEA    TO ROLE SYSADMIN;
-GRANT ROLE GAA_REP_INDIVIDUAL    TO ROLE SYSADMIN;
-```
+GRANT ROLE GAA_LOADER         TO ROLE SYSADMIN;
+GRANT ROLE GAA_FINANCE_GLOBAL TO ROLE SYSADMIN;
+GRANT ROLE GAA_SALES_DIR_EMEA TO ROLE SYSADMIN;
+GRANT ROLE GAA_REP_INDIVIDUAL TO ROLE SYSADMIN;
 
-- [ ] **Step 2: Write 02_masking_policies.sql**
-
-```sql
--- warehouse/governance/02_masking_policies.sql
--- Masking changes VALUES, never ROW COUNTS. The masking_preserves_row_count
--- invariant asserts exactly that property.
 USE ROLE SYSADMIN;
-
-CREATE MASKING POLICY IF NOT EXISTS MASK_ACCOUNT_NAME AS (val VARCHAR) RETURNS VARCHAR ->
-    CASE
-        WHEN CURRENT_ROLE() = 'GAA_FINANCE_GLOBAL' THEN val
-        ELSE 'ACCOUNT-' || RIGHT(SHA2(val), 8)
-    END;
-
-ALTER TABLE DIM_ACCOUNT MODIFY COLUMN ACCOUNT_NAME SET MASKING POLICY MASK_ACCOUNT_NAME;
+CREATE SCHEMA IF NOT EXISTS GAA.FINANCE;
+CREATE SCHEMA IF NOT EXISTS GAA.EMEA;
+CREATE SCHEMA IF NOT EXISTS GAA.REP;
 ```
 
-- [ ] **Step 3: Write 05_grants.sql**
+- [ ] **Step 2: Write 02_grants.sql**
 
 ```sql
--- warehouse/governance/05_grants.sql
+-- warehouse/governance/02_grants.sql
+-- Each persona role is granted USAGE on exactly ONE schema. MARTS is loader-only.
+-- These grants ARE the boundary, so a mis-grant is a breach rather than a bug; the
+-- conformance suite tests them adversarially.
 USE ROLE SYSADMIN;
 
 GRANT USAGE ON DATABASE GAA TO ROLE GAA_FINANCE_GLOBAL;
 GRANT USAGE ON DATABASE GAA TO ROLE GAA_SALES_DIR_EMEA;
 GRANT USAGE ON DATABASE GAA TO ROLE GAA_REP_INDIVIDUAL;
 
-GRANT USAGE ON SCHEMA GAA.MARTS TO ROLE GAA_FINANCE_GLOBAL;
-GRANT USAGE ON SCHEMA GAA.MARTS TO ROLE GAA_SALES_DIR_EMEA;
-GRANT USAGE ON SCHEMA GAA.MARTS TO ROLE GAA_REP_INDIVIDUAL;
-
-GRANT SELECT ON ALL TABLES IN SCHEMA GAA.MARTS TO ROLE GAA_FINANCE_GLOBAL;
-GRANT SELECT ON ALL TABLES IN SCHEMA GAA.MARTS TO ROLE GAA_SALES_DIR_EMEA;
-GRANT SELECT ON ALL TABLES IN SCHEMA GAA.MARTS TO ROLE GAA_REP_INDIVIDUAL;
+GRANT USAGE ON SCHEMA GAA.FINANCE TO ROLE GAA_FINANCE_GLOBAL;
+GRANT USAGE ON SCHEMA GAA.EMEA    TO ROLE GAA_SALES_DIR_EMEA;
+GRANT USAGE ON SCHEMA GAA.REP     TO ROLE GAA_REP_INDIVIDUAL;
 
 GRANT USAGE ON WAREHOUSE GAA_WH TO ROLE GAA_FINANCE_GLOBAL;
 GRANT USAGE ON WAREHOUSE GAA_WH TO ROLE GAA_SALES_DIR_EMEA;
 GRANT USAGE ON WAREHOUSE GAA_WH TO ROLE GAA_REP_INDIVIDUAL;
 ```
 
-- [ ] **Step 4: Write scripts/apply_governance.py**
+- [ ] **Step 3: Write scripts/apply_governance.py**
 
-Governance SQL is applied by a logged, re-runnable script — never pasted into a worksheet. Two
-reasons: a `dbt run` that recreates a table **drops the policies attached to it**, so this will be
-re-run many times; and an unlogged manual step cannot be debugged or handed to anyone else.
+Governance DDL is applied by a logged, re-runnable script, never pasted into a worksheet. `dbt run`
+recreates tables and drops dependent views, so this is re-run after every build.
 
 ```python
 # scripts/apply_governance.py
 """Apply governance DDL in order, idempotently, with a log of what ran.
 
-Every statement is expected to be re-runnable: CREATE ... IF NOT EXISTS, or an
-ALTER that is safe to repeat. dbt drops row access and masking policies whenever it
-recreates a table, so this script is run after every dbt build, not once.
+Every statement must be re-runnable: CREATE ... IF NOT EXISTS, CREATE OR REPLACE,
+or a GRANT. This is the ONLY privileged code path in the repository; nothing under
+gaa/ may use SYSADMIN, and the bypass tests assert that separation.
 """
 import sys
 from pathlib import Path
@@ -1542,15 +1537,23 @@ from gaa.connection import session_for_persona
 from gaa.spec.models import Persona
 
 GOVERNANCE_DIR = Path(__file__).parent.parent / "warehouse" / "governance"
-ADMIN = Persona(name="ADMIN", snowflake_role="SYSADMIN", description="DDL only")
+ADMIN = Persona(
+    name="ADMIN", snowflake_role="SYSADMIN", snowflake_schema="MARTS", description="DDL only"
+)
 
 
 def _statements(sql: str) -> list[str]:
-    return [s.strip() for s in sql.split(";") if s.strip() and not s.strip().startswith("--")]
+    out = []
+    for chunk in sql.split(";"):
+        lines = [ln for ln in chunk.splitlines() if not ln.strip().startswith("--")]
+        stmt = "\n".join(lines).strip()
+        if stmt:
+            out.append(stmt)
+    return out
 
 
 @click.command()
-@click.option("--only", default=None, help="substring match on filename, e.g. '03_row'")
+@click.option("--only", default=None, help="substring match on filename, e.g. '02_grants'")
 def main(only: str | None) -> None:
     settings = load_settings()
     files = sorted(GOVERNANCE_DIR.glob("*.sql"))
@@ -1579,20 +1582,6 @@ if __name__ == "__main__":
     main()
 ```
 
-Note the role: this script is the one place a privileged role is used, and it runs DDL only. No
-query path in `gaa/` may use it — that separation is what the bypass tests in Task 10 assert.
-
-- [ ] **Step 5: Apply and verify**
-
-Run: `uv run python scripts/apply_governance.py --only 01_roles && uv run python scripts/apply_governance.py --only 02_masking && uv run python scripts/apply_governance.py --only 05_grants`
-
-Then verify the masking took effect:
-```sql
-USE ROLE GAA_REP_INDIVIDUAL;
-SELECT ACCOUNT_NAME FROM GAA.MARTS.DIM_ACCOUNT LIMIT 1;
-```
-Expected: a masked value of the form `ACCOUNT-xxxxxxxx`, not a real name.
-
 Add to the Makefile:
 ```makefile
 .PHONY: governance
@@ -1600,25 +1589,39 @@ governance:
 	uv run python scripts/apply_governance.py
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Apply and verify**
+
+Run: `uv run python scripts/apply_governance.py --only 01_roles && uv run python scripts/apply_governance.py --only 02_grants`
+
+Verify a persona role sees its schema and nothing else:
+```sql
+USE ROLE GAA_REP_INDIVIDUAL;
+SHOW SCHEMAS IN DATABASE GAA;   -- expect REP only
+```
+
+- [ ] **Step 5: Commit**
 
 ```bash
-git add warehouse/governance/01_roles.sql warehouse/governance/02_masking_policies.sql \
-        warehouse/governance/05_grants.sql scripts/apply_governance.py Makefile
-git commit -m "feat(governance): persona roles, grants, masking, and a logged apply script"
+git add warehouse/governance/ scripts/apply_governance.py Makefile
+git commit -m "feat(governance): roles, per-persona schemas, and scoped grants"
 ```
 
 ---
 
-### Task 10: Row access policies
+### Task 10: Per-persona secure views and the bypass suite
 
 **Files:**
-- Create: `warehouse/governance/03_row_access_policies.sql`, `warehouse/governance/04_secure_views.sql`
+- Create: `warehouse/governance/03_persona_views.sql`, `gaa/connection.py`
 - Test: `tests/test_governance_boundary.py`
 
 **Interfaces:**
-- Consumes: roles from Task 9, marts from Task 8.
-- Produces: row access policy `RAP_TERRITORY` applied to `FCT_BOOKINGS`, `FCT_ARR_ROLLFORWARD`, and `DIM_ACCOUNT`; `gaa.connection.session_for_persona(persona: Persona) -> SnowflakeConnection`.
+- Consumes: roles and schemas from Task 9, marts from Task 8.
+- Produces: `V_BOOKINGS`, `V_ARR`, `V_ACCOUNT` in each of `GAA.FINANCE`, `GAA.EMEA`, `GAA.REP` —
+  same names, different definitions; and
+  `gaa.connection.session_for_persona(persona, settings=None) -> SnowflakeConnection`.
+
+The identical view names are the mechanism. Reference SQL is unqualified, the session default schema
+differs per persona, so one SQL string yields three different correct answers.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1626,60 +1629,71 @@ git commit -m "feat(governance): persona roles, grants, masking, and a logged ap
 # tests/test_governance_boundary.py
 """Integration tests. Require a live Snowflake account; skipped without credentials."""
 import os
+from pathlib import Path
 
 import pytest
 
 from gaa.connection import session_for_persona
 from gaa.spec.loader import load_spec
-from pathlib import Path
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("SNOWFLAKE_ACCOUNT"), reason="no Snowflake credentials"
 )
 
 SPEC = load_spec(Path(__file__).parent.parent / "evals" / "spec")
+SAME_SQL = "SELECT DISTINCT REGION FROM V_BOOKINGS"
 
 
-def _regions_visible(persona_name: str) -> set[str]:
+def _regions(persona_name: str) -> set[str]:
     with session_for_persona(SPEC.personas[persona_name]) as conn:
         cur = conn.cursor()
-        cur.execute("SELECT DISTINCT REGION FROM GAA.MARTS.FCT_BOOKINGS")
+        cur.execute(SAME_SQL)
         return {row[0] for row in cur.fetchall()}
 
 
-def test_finance_sees_all_regions():
-    assert _regions_visible("FINANCE_GLOBAL") == {"EMEA", "AMER", "APAC"}
+def test_identical_sql_yields_different_answers_per_persona():
+    """The central claim, asserted directly: one SQL string, three correct answers."""
+    assert _regions("FINANCE_GLOBAL") == {"EMEA", "AMER", "APAC"}
+    assert _regions("SALES_DIR_EMEA") == {"EMEA"}
+    assert _regions("REP_INDIVIDUAL") <= {"EMEA"}
 
 
-def test_emea_director_sees_only_emea():
-    assert _regions_visible("SALES_DIR_EMEA") == {"EMEA"}
-
-
-def test_rep_sees_subset_of_emea():
-    rep = _regions_visible("REP_INDIVIDUAL")
-    assert rep <= {"EMEA"}
-
-
-def test_rep_cannot_escalate_by_switching_role():
-    """The bypass path that matters: a persona session must not be able to USE ROLE up."""
+def test_rep_cannot_read_another_personas_schema():
     with session_for_persona(SPEC.personas["REP_INDIVIDUAL"]) as conn:
-        cur = conn.cursor()
         with pytest.raises(Exception):
-            cur.execute("USE ROLE GAA_FINANCE_GLOBAL")
+            conn.cursor().execute("SELECT COUNT(*) FROM GAA.FINANCE.V_BOOKINGS")
 
 
-def test_rep_cannot_read_unprotected_base_table():
-    """Querying staging directly must not bypass the policy applied to marts."""
+def test_rep_cannot_read_base_marts():
     with session_for_persona(SPEC.personas["REP_INDIVIDUAL"]) as conn:
-        cur = conn.cursor()
         with pytest.raises(Exception):
-            cur.execute("SELECT COUNT(*) FROM GAA.MARTS.STG_BOOKINGS")
+            conn.cursor().execute("SELECT COUNT(*) FROM GAA.MARTS.FCT_BOOKINGS")
+
+
+def test_rep_cannot_escalate_role():
+    with session_for_persona(SPEC.personas["REP_INDIVIDUAL"]) as conn:
+        with pytest.raises(Exception):
+            conn.cursor().execute("USE ROLE GAA_FINANCE_GLOBAL")
+
+
+def test_masking_changes_values_but_not_row_count():
+    def names(persona):
+        with session_for_persona(SPEC.personas[persona]) as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT ACCOUNT_NAME FROM V_ACCOUNT ORDER BY ACCOUNT_ID")
+            return [r[0] for r in cur.fetchall()]
+
+    finance = names("FINANCE_GLOBAL")
+    emea = names("SALES_DIR_EMEA")
+    emea_subset = [n for n in finance if n]  # finance is a superset; compare overlap only
+    assert emea and finance
+    assert all(n.startswith("ACCOUNT-") for n in emea), "EMEA names must be masked"
+    assert not all(n.startswith("ACCOUNT-") for n in emea_subset), "finance names must be clear"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run it, confirm ModuleNotFoundError for gaa.connection**
 
 Run: `uv run pytest tests/test_governance_boundary.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'gaa.connection'` (or all skipped without credentials — set them to proceed)
 
 - [ ] **Step 3: Write gaa/connection.py**
 
@@ -1712,10 +1726,11 @@ def _private_key_bytes(settings: Settings) -> bytes:
 def session_for_persona(
     persona: Persona, settings: Settings | None = None
 ) -> Iterator[snowflake.connector.SnowflakeConnection]:
-    """Open a Snowflake session bound to one persona's role.
+    """Open a Snowflake session bound to one persona's role AND schema.
 
-    The role is fixed at connect time. No code path elevates it afterward: that is
-    the governance boundary, and tests assert it cannot be crossed.
+    Both are fixed at connect time. The schema is as load-bearing as the role:
+    reference SQL is unqualified, so the default schema is what makes identical SQL
+    resolve to that persona's view. No code path elevates either afterward.
     """
     settings = settings or load_settings()
     conn = snowflake.connector.connect(
@@ -1725,7 +1740,7 @@ def session_for_persona(
         role=persona.snowflake_role,
         warehouse=settings.snowflake_warehouse,
         database=settings.snowflake_database,
-        schema=settings.snowflake_schema,
+        schema=persona.snowflake_schema,
         session_parameters={"QUERY_TAG": f"gaa:{persona.name}"},
     )
     try:
@@ -1734,73 +1749,59 @@ def session_for_persona(
         conn.close()
 ```
 
-- [ ] **Step 4: Write 03_row_access_policies.sql**
+- [ ] **Step 4: Write 03_persona_views.sql**
 
 ```sql
--- warehouse/governance/03_row_access_policies.sql
--- One policy, applied to every table carrying a REGION. Reads CURRENT_ROLE() only —
--- no session variables, which a caller could set and therefore spoof.
+-- warehouse/governance/03_persona_views.sql
+-- Identical view NAMES in three schemas, different definitions. This is the
+-- boundary: the session default schema selects which one an unqualified query hits.
+-- CREATE OR REPLACE because dbt drops dependents whenever it rebuilds a mart.
 USE ROLE SYSADMIN;
 
-CREATE ROW ACCESS POLICY IF NOT EXISTS RAP_TERRITORY
-AS (region VARCHAR, owner_rep_id VARCHAR) RETURNS BOOLEAN ->
-    CASE
-        WHEN CURRENT_ROLE() = 'GAA_LOADER'            THEN TRUE
-        WHEN CURRENT_ROLE() = 'GAA_FINANCE_GLOBAL'    THEN TRUE
-        WHEN CURRENT_ROLE() = 'GAA_SALES_DIR_EMEA'    THEN region = 'EMEA'
-        WHEN CURRENT_ROLE() = 'GAA_REP_INDIVIDUAL'    THEN owner_rep_id = 'REP001'
-        ELSE FALSE
-    END;
+-- FINANCE: everything, names in the clear.
+CREATE OR REPLACE SECURE VIEW GAA.FINANCE.V_BOOKINGS AS SELECT * FROM GAA.MARTS.FCT_BOOKINGS;
+CREATE OR REPLACE SECURE VIEW GAA.FINANCE.V_ARR      AS SELECT * FROM GAA.MARTS.FCT_ARR_ROLLFORWARD;
+CREATE OR REPLACE SECURE VIEW GAA.FINANCE.V_ACCOUNT  AS SELECT * FROM GAA.MARTS.DIM_ACCOUNT;
 
-ALTER TABLE FCT_BOOKINGS         ADD ROW ACCESS POLICY RAP_TERRITORY ON (REGION, OWNER_REP_ID);
-ALTER TABLE DIM_ACCOUNT          ADD ROW ACCESS POLICY RAP_TERRITORY ON (REGION, OWNER_REP_ID);
+-- EMEA: region-filtered, account names masked.
+CREATE OR REPLACE SECURE VIEW GAA.EMEA.V_BOOKINGS AS
+    SELECT * FROM GAA.MARTS.FCT_BOOKINGS WHERE REGION = 'EMEA';
+CREATE OR REPLACE SECURE VIEW GAA.EMEA.V_ARR AS
+    SELECT * FROM GAA.MARTS.FCT_ARR_ROLLFORWARD WHERE REGION = 'EMEA';
+CREATE OR REPLACE SECURE VIEW GAA.EMEA.V_ACCOUNT AS
+    SELECT ACCOUNT_ID, 'ACCOUNT-' || RIGHT(SHA2(ACCOUNT_NAME), 8) AS ACCOUNT_NAME,
+           REGION, SEGMENT, OWNER_REP_ID
+    FROM GAA.MARTS.DIM_ACCOUNT WHERE REGION = 'EMEA';
+
+-- REP: own accounts only, names masked.
+CREATE OR REPLACE SECURE VIEW GAA.REP.V_BOOKINGS AS
+    SELECT * FROM GAA.MARTS.FCT_BOOKINGS WHERE OWNER_REP_ID = 'REP001';
+CREATE OR REPLACE SECURE VIEW GAA.REP.V_ARR AS
+    SELECT * FROM GAA.MARTS.FCT_ARR_ROLLFORWARD WHERE OWNER_REP_ID = 'REP001';
+CREATE OR REPLACE SECURE VIEW GAA.REP.V_ACCOUNT AS
+    SELECT ACCOUNT_ID, 'ACCOUNT-' || RIGHT(SHA2(ACCOUNT_NAME), 8) AS ACCOUNT_NAME,
+           REGION, SEGMENT, OWNER_REP_ID
+    FROM GAA.MARTS.DIM_ACCOUNT WHERE OWNER_REP_ID = 'REP001';
+
+GRANT SELECT ON ALL VIEWS IN SCHEMA GAA.FINANCE TO ROLE GAA_FINANCE_GLOBAL;
+GRANT SELECT ON ALL VIEWS IN SCHEMA GAA.EMEA    TO ROLE GAA_SALES_DIR_EMEA;
+GRANT SELECT ON ALL VIEWS IN SCHEMA GAA.REP     TO ROLE GAA_REP_INDIVIDUAL;
 ```
 
-`FCT_ARR_ROLLFORWARD` has no `OWNER_REP_ID`; add one in Task 8's model if the policy is to apply uniformly. If you reach this step and the column is absent, add `a.OWNER_REP_ID` to the `quarterly` CTE grouping in `fct_arr_rollforward.sql`, rebuild, then apply:
+`REP001` is hardcoded. A real deployment maps `CURRENT_USER()` to a rep; the hardcode is acceptable
+for a single-user reference deployment and is listed as accepted risk in the threat model.
 
-```sql
-ALTER TABLE FCT_ARR_ROLLFORWARD  ADD ROW ACCESS POLICY RAP_TERRITORY ON (REGION, OWNER_REP_ID);
-```
+- [ ] **Step 5: Apply, then run the boundary suite**
 
-- [ ] **Step 5: Write 04_secure_views.sql**
-
-```sql
--- warehouse/governance/04_secure_views.sql
--- Persona roles read ONLY these secure views. Direct SELECT on staging is revoked,
--- closing the "query the unprotected base table" bypass.
-USE ROLE SYSADMIN;
-
-REVOKE SELECT ON ALL VIEWS IN SCHEMA GAA.MARTS FROM ROLE GAA_FINANCE_GLOBAL;
-REVOKE SELECT ON ALL VIEWS IN SCHEMA GAA.MARTS FROM ROLE GAA_SALES_DIR_EMEA;
-REVOKE SELECT ON ALL VIEWS IN SCHEMA GAA.MARTS FROM ROLE GAA_REP_INDIVIDUAL;
-
-CREATE SECURE VIEW IF NOT EXISTS V_BOOKINGS AS SELECT * FROM FCT_BOOKINGS;
-CREATE SECURE VIEW IF NOT EXISTS V_ARR      AS SELECT * FROM FCT_ARR_ROLLFORWARD;
-CREATE SECURE VIEW IF NOT EXISTS V_ACCOUNT  AS SELECT * FROM DIM_ACCOUNT;
-
-GRANT SELECT ON VIEW V_BOOKINGS TO ROLE GAA_FINANCE_GLOBAL;
-GRANT SELECT ON VIEW V_BOOKINGS TO ROLE GAA_SALES_DIR_EMEA;
-GRANT SELECT ON VIEW V_BOOKINGS TO ROLE GAA_REP_INDIVIDUAL;
-GRANT SELECT ON VIEW V_ARR      TO ROLE GAA_FINANCE_GLOBAL;
-GRANT SELECT ON VIEW V_ARR      TO ROLE GAA_SALES_DIR_EMEA;
-GRANT SELECT ON VIEW V_ARR      TO ROLE GAA_REP_INDIVIDUAL;
-GRANT SELECT ON VIEW V_ACCOUNT  TO ROLE GAA_FINANCE_GLOBAL;
-GRANT SELECT ON VIEW V_ACCOUNT  TO ROLE GAA_SALES_DIR_EMEA;
-GRANT SELECT ON VIEW V_ACCOUNT  TO ROLE GAA_REP_INDIVIDUAL;
-```
-
-- [ ] **Step 6: Apply, then run the boundary tests**
-
-Run: `uv run python scripts/apply_governance.py --only 03_row && uv run python scripts/apply_governance.py --only 04_secure`
-
+Run: `uv run python scripts/apply_governance.py --only 03_persona_views`
 Then: `uv run pytest tests/test_governance_boundary.py -v`
-Expected: 5 passed against a live account
+Expected: 5 passed against a live account.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add warehouse/governance/03_row_access_policies.sql warehouse/governance/04_secure_views.sql gaa/connection.py tests/test_governance_boundary.py
-git commit -m "feat(governance): row access policies, secure views, and bypass tests"
+git add warehouse/governance/03_persona_views.sql gaa/connection.py tests/test_governance_boundary.py
+git commit -m "feat(governance): per-persona secure views and the bypass suite"
 ```
 
 ---
@@ -2322,5 +2323,5 @@ git commit -m "test: assert the spec predates the models in git history"
 
 **Known gaps to carry into Plan 2.**
 - The `REP_INDIVIDUAL` policy hardcodes `REP001`. A real deployment maps `CURRENT_USER()` to a rep; the hardcode is acceptable for a single-user reference deployment and must be called out in the threat model as accepted risk.
-- `FCT_ARR_ROLLFORWARD` needs `OWNER_REP_ID` for the row access policy to apply uniformly. Task 10 Step 4 notes the fix; fold it into Task 8 if building fresh.
+- `FCT_ARR_ROLLFORWARD` needs `OWNER_REP_ID` so the REP persona view can filter on it. Add it to the `quarterly` CTE grouping in `fct_arr_rollforward.sql` when building Task 8.
 - The chaos suite is not built here. The failure taxonomy exists as an enum from Task 2 but nothing scores against it until the agent exists.
