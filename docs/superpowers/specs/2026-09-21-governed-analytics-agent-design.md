@@ -67,6 +67,10 @@ yourself — credibility comes from reproducibility, not assertion.
 4. **Governance refusal is a first-class result.** "I can't see AMER" beats a silently smaller number.
 5. **The evaluation is adversarial toward its own author.** Mechanisms that could certify the
    author's own mistakes are defects to engineer out.
+6. **Snowflake-native now, portable later if ever.** Depth on one platform beats shallow coverage of
+   three. But the seams that would carry portability — policy evaluation, audit sink, contract
+   compiler target — stay clean interfaces rather than Snowflake calls scattered through the agent.
+   No BigQuery or Databricks adapters are built. The option to add them is kept open and unpaid for.
 
 ## Deployability (first-class constraint)
 
@@ -239,6 +243,49 @@ result that was never at risk.
   co-maintainers and documents what taking over a layer involves.
 - Versioned releases so adopters can pin.
 
+## Non-code deliverables
+
+Code proves the engineering. These two documents prove the judgment, and they are the reason a
+reader who evaluates operating capability rather than craft has something to read.
+
+### 90-day rollout plan (`docs/rollout-plan.md`)
+
+How an organization actually adopts this, written as an operator would write it rather than as a
+README.
+
+- **Phase 1 (days 1–30)** — sandbox deployment; red-team the governance boundary; establish the
+  baseline leak and over-block rates before anyone trusts an answer.
+- **Phase 2 (days 31–60)** — a limited persona set against the ten highest-value finance and sales
+  questions; humans verify every answer; the eval suite runs on every model change.
+- **Phase 3 (days 61–90)** — expand domains; add monitoring and an incident process for a wrong
+  answer that reached a decision.
+
+With staffing shape per phase, success metrics (governance leak rate, over-block rate, eval pass
+rate, time-to-answer, credit cost per answer), a risk register, and the explicit criteria for
+stopping or rolling back.
+
+### Threat model and control mapping (`docs/threat-model.md`)
+
+Two pages. Each failure mode enumerated, then mapped to the control that exists in the code and the
+test that proves the control works:
+
+- prompt injection reaching the tool surface
+- tool misuse and parameter tampering
+- role escalation and default-role leakage
+- exfiltration via aggregates and inference attacks
+- metric-contract tampering as a data-definition injection path
+- audit-log leakage, where the log itself exposes SQL, policy definitions, and schema shape
+- supply-chain compromise of the CI evaluation path
+
+Failure modes without an implemented control are listed as accepted risk with the reason, rather
+than omitted. A threat model that claims complete coverage is not credible.
+
+### Walkthrough recording
+
+Five to seven minutes: a blocked query showing `why_not`, an allowed query showing its `query_id`,
+and the audit lookup reconciling that query ID against `ACCOUNT_USAGE`. Linked from the README above
+the fold, because the fastest path to belief is watching it happen.
+
 ## Testing and CI
 
 - `dbt test` on contracts, uniqueness, relationships, declared NULL policies
@@ -296,8 +343,13 @@ If these come back cold, the scope is wrong and better to know in week one.
 - **Phase 6 — Tier 0 demo path, deployment tooling, conformance suite, ADRs, CONTRIBUTING,
   bring-your-own-models guide.**
 - **Phase 7 — Spider2-snow adapter; run the experiment; publish results and limitations.**
+- **Phase 8 — Non-code deliverables: 90-day rollout plan, threat model and control mapping,
+  walkthrough recording.**
 
 Phases 1–6 each end green before the next begins.
+
+The threat model is drafted during Phase 3, when the governance boundary is being built and its
+failure modes are fresh, then finalized in Phase 8 once the controls and their tests exist.
 
 ## Success criteria
 
@@ -314,3 +366,6 @@ company repos, not starred. What counts:
 6. An adopting team points the architecture at their own dbt models and the conformance suite tells
    them whether they got it right.
 7. At least one external contributor or co-maintainer.
+8. A reader who evaluates operating capability rather than code — a data leader deciding whether to
+   adopt, or a hiring committee filling a leadership seat — finds the rollout plan and threat model
+   and can tell from them how the author would run this at scale.
