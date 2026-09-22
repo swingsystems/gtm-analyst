@@ -23,6 +23,8 @@ def _read_yaml(path: Path) -> dict:
     try:
         with path.open() as fh:
             data = yaml.safe_load(fh)
+    except FileNotFoundError as exc:
+        raise SpecError(f"{path}: required spec file is missing") from exc
     except yaml.YAMLError as exc:
         raise SpecError(f"{path}: invalid YAML: {exc}") from exc
     if not isinstance(data, dict):

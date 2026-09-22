@@ -64,3 +64,15 @@ def test_unsafe_yaml_tag_rejected(tmp_path):
     _write_spec(tmp_path, evil)
     with pytest.raises(SpecError):
         load_spec(tmp_path)
+
+
+def test_missing_personas_file_raises_spec_error(tmp_path):
+    """A partial spec directory must fail as a SpecError, not an unhandled OSError.
+
+    spec-validate reports SpecError cleanly and exits 1; anything else surfaces as a
+    traceback, which reads as a tool bug rather than as the spec problem it is.
+    """
+    (tmp_path / "questions").mkdir()
+    (tmp_path / "reference_sql").mkdir()
+    with pytest.raises(SpecError, match="required spec file is missing"):
+        load_spec(tmp_path)
