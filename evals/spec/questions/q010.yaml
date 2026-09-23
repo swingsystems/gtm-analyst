@@ -1,0 +1,14 @@
+id: q010
+text: "What was recognised revenue for Q3 2026 by customer segment?"
+reference_sql: q010_revenue_by_segment.sql
+grain: segment
+source: authored
+tags: [revenue,nulls]
+targets: null_segment_dropped
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

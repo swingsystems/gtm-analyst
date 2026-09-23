@@ -1,0 +1,14 @@
+id: q011
+text: "What were Q3 2026 bookings by account and territory?"
+reference_sql: q011_bookings_by_account_and_territory.sql
+grain: account_territory
+source: authored
+tags: [bookings,scd,fanout]
+targets: fanout_double_count
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

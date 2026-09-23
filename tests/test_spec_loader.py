@@ -26,6 +26,7 @@ reference_sql: q001_x.sql
 grain: region
 source: authored
 tags: [test]
+targets: wrong_column
 expected:
   - persona: FINANCE_GLOBAL
     rows:

@@ -1,0 +1,14 @@
+id: q002
+text: "What revenue was recognised in Q3 2026 by region?"
+reference_sql: q002_revenue_by_region.sql
+grain: region
+source: authored
+tags: [revenue,recognition]
+targets: wrong_column
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

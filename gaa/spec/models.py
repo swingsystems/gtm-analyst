@@ -1,6 +1,8 @@
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from gaa.spec.taxonomy import FailureCategory
 
 _SQL_KEYWORDS = ("select ", "insert ", "update ", "delete ", "with ", "drop ", "grant ")
 
@@ -34,6 +36,8 @@ class Question(BaseModel):
     reaches Snowflake.
     """
 
+    model_config = ConfigDict(extra="forbid")
+
     id: str
     text: str
     reference_sql: str
@@ -41,6 +45,7 @@ class Question(BaseModel):
     expected: list[ExpectedResult]
     tags: list[str] = Field(default_factory=list)
     source: Literal["authored", "blind_spot", "spider2"]
+    targets: FailureCategory
 
     @field_validator("reference_sql")
     @classmethod

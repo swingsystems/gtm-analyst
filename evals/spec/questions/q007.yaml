@@ -1,0 +1,14 @@
+id: q007
+text: "How much did we sell in Q3 2026?"
+reference_sql: q007_ambiguous_how_much_did_we_sell.sql
+grain: ambiguous
+source: authored
+tags: [ambiguous,refusal]
+targets: unresolvable
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

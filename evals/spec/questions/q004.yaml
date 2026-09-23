@@ -1,0 +1,14 @@
+id: q004
+text: "Which Q3 2026 bookings have never been billed?"
+reference_sql: q004_bookings_without_billing.sql
+grain: booking
+source: authored
+tags: [reconciliation,orphans]
+targets: orphans_dropped
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

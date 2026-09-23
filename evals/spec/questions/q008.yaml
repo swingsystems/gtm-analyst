@@ -1,0 +1,14 @@
+id: q008
+text: "Which bookings landed on the last day of Q2 2026?"
+reference_sql: q008_bookings_on_quarter_boundary.sql
+grain: booking
+source: authored
+tags: [bookings,boundary]
+targets: wrong_date_boundary
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

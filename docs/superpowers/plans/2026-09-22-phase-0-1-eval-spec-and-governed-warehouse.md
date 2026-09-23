@@ -1579,14 +1579,9 @@ ADMIN = Persona(
 )
 
 
-def _statements(sql: str) -> list[str]:
-    out = []
-    for chunk in sql.split(";"):
-        lines = [ln for ln in chunk.splitlines() if not ln.strip().startswith("--")]
-        stmt = "\n".join(lines).strip()
-        if stmt:
-            out.append(stmt)
-    return out
+# Statement splitting lives in gaa.spec.sql — a naive split(";") counts
+# semicolons inside comments as separators. Import it, do not reimplement it.
+from gaa.spec.sql import sql_statements
 
 
 @click.command()
@@ -1947,7 +1942,7 @@ def run_reference(spec_root: Path, question: Question, persona: Persona) -> Refe
     and exactly one statement is permitted.
     """
     sql = (spec_root / "reference_sql" / question.reference_sql).read_text()
-    if len([s for s in sql.split(";") if s.strip()]) != 1:
+    if len(sql_statements(sql)) != 1:
         raise ValueError(f"{question.reference_sql}: must contain a single statement")
 
     with session_for_persona(persona) as conn:

@@ -1,0 +1,14 @@
+id: q009
+text: "Which were the top 10 accounts by recognised revenue in Q3 2026?"
+reference_sql: q009_top_accounts_by_revenue.sql
+grain: account
+source: authored
+tags: [revenue,masking]
+targets: wrong_column
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

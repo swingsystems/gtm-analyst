@@ -1,0 +1,14 @@
+id: q006
+text: "How much revenue was recognised in Q3 2026 from bookings signed before Q3?"
+reference_sql: q006_revenue_from_prior_bookings.sql
+grain: total
+source: authored
+tags: [revenue,recognition,ratable]
+targets: wrong_date_boundary
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

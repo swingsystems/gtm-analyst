@@ -1,0 +1,36 @@
+# Metamorphic properties: true regardless of the specific numbers, so they catch
+# a wrong oracle rather than a wrong agent.
+invariants:
+  - id: sum_of_parts_bookings
+    description: Global bookings equal the sum of the three regional totals.
+    kind: sum_of_parts
+    params:
+      question_id: q001
+      whole_persona: FINANCE_GLOBAL
+      value_column: VALUE
+      part_column: REGION
+      parts: [AMER, APAC, EMEA]
+
+  - id: monotonic_nesting_revenue
+    description: Rep revenue <= EMEA revenue <= global revenue.
+    kind: monotonic_nesting
+    params:
+      question_id: q002
+      value_column: VALUE
+      order: [REP_INDIVIDUAL, SALES_DIR_EMEA, FINANCE_GLOBAL]
+
+  - id: masking_preserves_row_count
+    description: >
+      Masking changes distinct account names but never the number of rows
+      returned for the same filtered population.
+    kind: masking_preserves_row_count
+    params:
+      question_id: q009
+      personas: [FINANCE_GLOBAL, SALES_DIR_EMEA]
+      masked_column: ACCOUNT_NAME
+
+  - id: determinism_all_questions
+    description: The same question asked twice as the same persona returns identical rows.
+    kind: determinism
+    params:
+      repeat: 2

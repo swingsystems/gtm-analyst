@@ -1,0 +1,14 @@
+id: q001
+text: "What were total bookings for Q3 2026 by region, excluding intercompany?"
+reference_sql: q001_bookings_by_region.sql
+grain: region
+source: authored
+tags: [bookings,baseline]
+targets: wrong_column
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

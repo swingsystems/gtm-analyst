@@ -33,6 +33,7 @@ def test_question_rejects_inline_sql_field():
             expected=[],
             tags=["arr"],
             source="authored",
+            targets="wrong_column",
         )
 
 
@@ -45,6 +46,7 @@ def test_question_accepts_sql_filename():
         expected=[ExpectedResult(persona="FINANCE_GLOBAL", rows=[{"REGION": "EMEA", "VALUE": "100.00"}])],
         tags=["arr"],
         source="authored",
+        targets="wrong_column",
     )
     assert q.reference_sql.endswith(".sql")
     assert q.expected[0].persona == "FINANCE_GLOBAL"
@@ -54,7 +56,7 @@ def test_question_source_must_be_known():
     with pytest.raises(ValidationError):
         Question(
             id="q002", text="x", reference_sql="q002.sql", grain="region",
-            expected=[], tags=[], source="invented",
+            expected=[], tags=[], source="invented", targets="wrong_column",
         )
 
 
@@ -73,3 +75,22 @@ def test_failure_categories_present():
     assert FailureCategory.GOVERNANCE_OVER_BLOCK.value == "governance_over_block"
     assert FailureCategory.ORPHANS_DROPPED.value == "orphans_dropped"
     assert len(list(FailureCategory)) == 9
+
+
+def test_question_requires_a_target_category():
+    """Every question exists to probe one failure category. Untargeted questions
+    accumulate without anyone noticing they test nothing."""
+    with pytest.raises(ValidationError):
+        Question(
+            id="q", text="t", reference_sql="q.sql", grain="g",
+            expected=[], tags=[], source="authored",
+        )
+
+
+def test_question_rejects_unknown_fields():
+    """extra='forbid': a typo'd key must fail loudly, not be silently ignored."""
+    with pytest.raises(ValidationError):
+        Question(
+            id="q", text="t", reference_sql="q.sql", grain="g", expected=[],
+            tags=[], source="authored", targets="wrong_column", targetz="oops",
+        )

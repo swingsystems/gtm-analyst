@@ -1,0 +1,14 @@
+id: q003
+text: "Which Q3 2026 bookings have no revenue recorded against them?"
+reference_sql: q003_bookings_without_revenue.sql
+grain: booking
+source: authored
+tags: [reconciliation,orphans]
+targets: orphans_dropped
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

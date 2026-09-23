@@ -1,0 +1,14 @@
+id: q012
+text: "What were total Q3 2026 bookings for the AMER region?"
+reference_sql: q012_bookings_amer_only.sql
+grain: region
+source: authored
+tags: [governance,refusal]
+targets: governance_over_block
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []

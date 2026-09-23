@@ -1,0 +1,24 @@
+# Three callers. Each maps to one Snowflake role AND one schema.
+# The schema is load-bearing: reference SQL is unqualified, so the session's
+# default schema is what makes identical SQL resolve to that persona's view.
+# See docs/adr/0001-governance-on-standard-edition.md
+personas:
+  - name: FINANCE_GLOBAL
+    snowflake_role: GAA_FINANCE_GLOBAL
+    snowflake_schema: FINANCE
+    description: >
+      Corporate FP&A / controller. Sees every territory and unmasked account
+      names. Owns revenue recognition and cares whether bookings reconcile to
+      billings and revenue.
+  - name: SALES_DIR_EMEA
+    snowflake_role: GAA_SALES_DIR_EMEA
+    snowflake_schema: EMEA
+    description: >
+      Regional sales leadership. Sees EMEA territories only, account names
+      masked. Cares about bookings and quota attainment, not recognition.
+  - name: REP_INDIVIDUAL
+    snowflake_role: GAA_REP_INDIVIDUAL
+    snowflake_schema: REP
+    description: >
+      Individual contributor. Sees only accounts they own, names masked. Cares
+      about their own quota credit.

@@ -1,0 +1,14 @@
+id: q005
+text: "For Q3 2026, compare booked amount against recognised revenue by license type."
+reference_sql: q005_bookings_vs_revenue_by_license.sql
+grain: license_type
+source: authored
+tags: [revenue,recognition,timing]
+targets: wrong_join_grain
+expected:
+  - persona: FINANCE_GLOBAL
+    rows: []
+  - persona: SALES_DIR_EMEA
+    rows: []
+  - persona: REP_INDIVIDUAL
+    rows: []
