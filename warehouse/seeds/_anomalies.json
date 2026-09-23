@@ -1,0 +1,17 @@
+{
+  "bookings_without_billing": [
+    "BK000001",
+    "BK000052",
+    "BK000103",
+    "BK000154",
+    "BK000205",
+    "BK000256"
+  ],
+  "bookings_without_revenue": [
+    "BK000032",
+    "BK000094",
+    "BK000156",
+    "BK000218",
+    "BK000280"
+  ]
+}

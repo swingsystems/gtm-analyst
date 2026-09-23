@@ -1,0 +1,22 @@
+# The GTM domain shape as DATA. The generator is generic; swap this file to
+# generate a different domain. Fiscal year is the calendar year.
+seed: 42
+accounts:
+  count: 120
+  regions: [EMEA, AMER, APAC]
+  segments: ["Enterprise", "Mid-Market", "SMB", ""]   # "" becomes NULL downstream
+  reps: 12
+bookings:
+  per_account: [1, 4]
+  amount_range: [1000, 250000]
+  window: ["2026-01-01", "2026-09-30"]
+  license_split: {perpetual: 0.4, subscription: 0.6}
+  subscription_terms: [12, 24, 36]
+  intercompany_every: 37
+billings:
+  lag_days: [0, 45]
+anomalies:
+  bookings_without_billing: 6
+  bookings_without_revenue: 5
+  quarter_boundary_dates: ["2026-06-30"]
+  territory_reassignment_date: "2026-08-15"
