@@ -10,3 +10,6 @@ target/
 dbt_packages/
 logs/
 .pytest_cache/
+warehouse/target/
+warehouse/dbt_packages/
+warehouse/logs/

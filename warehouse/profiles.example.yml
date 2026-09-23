@@ -1,0 +1,15 @@
+# Copy to ~/.dbt/profiles.yml. Values come from the same environment variables
+# that gaa.config reads, so there is one source of truth for connection details.
+gaa:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      role: GAA_LOADER
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+      schema: MARTS
+      threads: 4

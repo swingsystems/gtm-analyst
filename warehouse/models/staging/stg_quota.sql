@@ -1,0 +1,7 @@
+SELECT
+    REP_ID::VARCHAR              AS REP_ID,
+    FISCAL_QUARTER::VARCHAR      AS FISCAL_QUARTER,
+    QUOTA_AMOUNT::NUMBER(38,2)   AS QUOTA_AMOUNT,
+    VALID_FROM::DATE             AS VALID_FROM,
+    VALID_TO::DATE               AS VALID_TO
+FROM {{ ref('raw_quota') }}

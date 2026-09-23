@@ -1,0 +1,17 @@
+name: gaa
+version: "0.1.0"
+config-version: 2
+profile: gaa
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  gaa:
+    staging:
+      +materialized: view
+    marts:
+      +materialized: table

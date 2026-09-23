@@ -1,0 +1,51 @@
+version: 2
+models:
+  - name: stg_accounts
+    columns:
+      - name: ACCOUNT_ID
+        tests: [unique, not_null]
+      - name: REGION
+        tests:
+          - not_null
+          - accepted_values: {values: ['EMEA', 'AMER', 'APAC']}
+      - name: SEGMENT
+        description: "Nullable by design. A NULL segment must survive aggregation (q010)."
+  - name: stg_bookings
+    columns:
+      - name: BOOKING_ID
+        tests: [unique, not_null]
+      - name: ACCOUNT_ID
+        tests:
+          - not_null
+          - relationships: {to: ref('stg_accounts'), field: ACCOUNT_ID}
+      - name: AMOUNT
+        tests: [not_null]
+      - name: LICENSE_TYPE
+        tests:
+          - accepted_values: {values: ['perpetual', 'subscription']}
+  - name: stg_billings
+    columns:
+      - name: BILLING_ID
+        tests: [unique, not_null]
+      - name: BOOKING_ID
+        description: >
+          Deliberately NOT tested for completeness against bookings. Seeded
+          orphans are ground truth for q004; a relationships test here would
+          fail on purpose-built data.
+        tests:
+          - relationships: {to: ref('stg_bookings'), field: BOOKING_ID}
+  - name: stg_revenue
+    columns:
+      - name: REVENUE_ID
+        tests: [unique, not_null]
+      - name: BOOKING_ID
+        tests:
+          - relationships: {to: ref('stg_bookings'), field: BOOKING_ID}
+  - name: stg_territory_assignments
+    columns:
+      - name: REP_ID
+        tests: [not_null]
+  - name: stg_quota
+    columns:
+      - name: REP_ID
+        tests: [not_null]

@@ -1,0 +1,30 @@
+version: 2
+seeds:
+  - name: raw_bookings
+    config:
+      column_types:
+        BOOKING_DATE: DATE
+        AMOUNT: NUMBER(38,2)
+        TERM_MONTHS: NUMBER(38,0)
+        IS_INTERCOMPANY: BOOLEAN
+  - name: raw_billings
+    config:
+      column_types:
+        INVOICE_DATE: DATE
+        AMOUNT: NUMBER(38,2)
+  - name: raw_revenue
+    config:
+      column_types:
+        RECOGNITION_DATE: DATE
+        AMOUNT: NUMBER(38,2)
+  - name: raw_territory_assignments
+    config:
+      column_types:
+        VALID_FROM: DATE
+        VALID_TO: DATE
+  - name: raw_quota
+    config:
+      column_types:
+        QUOTA_AMOUNT: NUMBER(38,2)
+        VALID_FROM: DATE
+        VALID_TO: DATE
