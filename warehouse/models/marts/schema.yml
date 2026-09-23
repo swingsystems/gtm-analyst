@@ -1,0 +1,39 @@
+version: 2
+models:
+  - name: dim_fiscal_calendar
+    description: "Owns every period boundary. Fiscal year is the calendar year."
+    columns:
+      - name: CALENDAR_DATE
+        tests: [unique, not_null]
+      - name: FISCAL_QUARTER
+        tests: [not_null]
+  - name: dim_account
+    columns:
+      - name: ACCOUNT_ID
+        tests: [unique, not_null]
+  - name: dim_territory_scd
+    columns:
+      - name: REP_ID
+        tests: [not_null]
+  - name: fct_bookings
+    columns:
+      - name: BOOKING_ID
+        tests: [unique, not_null]
+      - name: AMOUNT
+        tests: [not_null]
+      - name: FISCAL_QUARTER
+        tests: [not_null]
+      - name: REGION
+        tests:
+          - accepted_values: {values: ['EMEA', 'AMER', 'APAC']}
+  - name: fct_billings
+    columns:
+      - name: BILLING_ID
+        tests: [unique, not_null]
+  - name: fct_revenue
+    columns:
+      - name: REVENUE_ID
+        tests: [unique, not_null]
+      - name: LICENSE_TYPE
+        tests:
+          - accepted_values: {values: ['perpetual', 'subscription']}
