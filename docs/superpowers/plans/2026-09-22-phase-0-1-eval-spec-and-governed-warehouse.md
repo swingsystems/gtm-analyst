@@ -947,193 +947,230 @@ git commit -m "feat(cli): spec-validate command and CI gate"
 
 ---
 
-### Task 6: Synthetic seed data
+### Task 6: Generic profile-driven synthetic data generator
 
 **Files:**
-- Create: `warehouse/seeds/raw_accounts.csv`, `raw_opportunities.csv`, `raw_bookings.csv`, `raw_territory_assignments.csv`, `raw_quota.csv`, `warehouse/seeds/schema.yml`
-- Create: `scripts/generate_seeds.py`
-- Test: `tests/test_seed_data.py`
+- Create: `gaa/synth/__init__.py`, `gaa/synth/profile.py`, `gaa/synth/generate.py`
+- Create: `warehouse/seeds/profile.yaml` (the GTM domain shape, as config)
+- Create: `warehouse/seeds/*.csv` (generated output, committed)
+- Modify: `gaa/cli.py` (add `synth` command)
+- Test: `tests/test_synth.py`, `tests/test_seed_data.py`
 
 **Interfaces:**
 - Consumes: nothing.
-- Produces: deterministic CSV seeds. `raw_bookings.csv` columns: `BOOKING_ID,ACCOUNT_ID,BOOKING_DATE,AMOUNT,IS_INTERCOMPANY,CURRENCY`. `raw_accounts.csv`: `ACCOUNT_ID,ACCOUNT_NAME,REGION,SEGMENT,OWNER_REP_ID`. `raw_territory_assignments.csv`: `TERRITORY_ID,REGION,REP_ID,VALID_FROM,VALID_TO`. `raw_quota.csv`: `REP_ID,FISCAL_QUARTER,QUOTA_AMOUNT,VALID_FROM,VALID_TO`.
+- Produces: `gaa.synth.profile.{ColumnProfile, TableProfile, DatasetProfile, load_profile}`;
+  `gaa.synth.generate.generate(profile, seed) -> dict[str, list[dict]]`; CLI `gaa synth`.
+- Generated tables and columns: `raw_accounts(ACCOUNT_ID, ACCOUNT_NAME, REGION, SEGMENT,
+  OWNER_REP_ID)`, `raw_bookings(BOOKING_ID, ACCOUNT_ID, BOOKING_DATE, AMOUNT, LICENSE_TYPE,
+  TERM_MONTHS, IS_INTERCOMPANY, CURRENCY)`, `raw_billings(BILLING_ID, BOOKING_ID, INVOICE_DATE,
+  AMOUNT)`, `raw_revenue(REVENUE_ID, BOOKING_ID, RECOGNITION_DATE, AMOUNT)`,
+  `raw_territory_assignments(TERRITORY_ID, REGION, REP_ID, VALID_FROM, VALID_TO)`,
+  `raw_quota(REP_ID, FISCAL_QUARTER, QUOTA_AMOUNT, VALID_FROM, VALID_TO)`.
+
+**Why generic, not a fixture script.** Profiling and generation are the same capability pointed in
+opposite directions. Building the generator to consume a declared profile means an adopter can later
+point it at their own warehouse and obtain synthetic data with their shape and none of their
+numbers. See `docs/adr/0002-synthetic-data-no-admin-ui-deferred-deal-intelligence.md`.
+
+**Determinism is required.** Fixed seed, integer arithmetic for money, no wall-clock reads. The same
+profile and seed must produce byte-identical CSVs, or the ground truth drifts underneath the eval.
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
-# tests/test_seed_data.py
-import csv
+# tests/test_synth.py
 from decimal import Decimal
 from pathlib import Path
 
-SEEDS = Path(__file__).parent.parent / "warehouse" / "seeds"
+import pytest
+
+from gaa.synth.generate import generate
+from gaa.synth.profile import load_profile
+
+PROFILE = Path(__file__).parent.parent / "warehouse" / "seeds" / "profile.yaml"
 
 
-def _rows(name):
-    with (SEEDS / name).open() as fh:
-        return list(csv.DictReader(fh))
+def test_generation_is_deterministic():
+    """Same profile, same seed, byte-identical output. Ground truth cannot drift."""
+    a = generate(load_profile(PROFILE), seed=42)
+    b = generate(load_profile(PROFILE), seed=42)
+    assert a == b
 
 
-def test_money_has_exactly_two_decimal_places():
-    for row in _rows("raw_bookings.csv"):
-        amount = row["AMOUNT"]
-        assert Decimal(amount) == Decimal(amount).quantize(Decimal("0.01"))
-        assert "." in amount and len(amount.split(".")[1]) == 2
+def test_different_seed_gives_different_data():
+    a = generate(load_profile(PROFILE), seed=42)
+    b = generate(load_profile(PROFILE), seed=43)
+    assert a["raw_bookings"] != b["raw_bookings"]
 
 
-def test_some_accounts_have_null_segment():
-    """q008 requires a NULL segment that must not be silently dropped."""
-    segments = {row["SEGMENT"] for row in _rows("raw_accounts.csv")}
-    assert "" in segments
+def test_money_is_two_decimal_places_never_float():
+    data = generate(load_profile(PROFILE), seed=42)
+    for table, column in [("raw_bookings", "AMOUNT"), ("raw_billings", "AMOUNT"),
+                          ("raw_revenue", "AMOUNT"), ("raw_quota", "QUOTA_AMOUNT")]:
+        for row in data[table]:
+            value = row[column]
+            assert isinstance(value, str), f"{table}.{column} must be str, not float"
+            assert Decimal(value) == Decimal(value).quantize(Decimal("0.01"))
 
 
-def test_all_three_regions_present():
-    regions = {row["REGION"] for row in _rows("raw_accounts.csv")}
-    assert regions == {"EMEA", "AMER", "APAC"}
+def test_seeded_orphans_exist_and_are_reported():
+    """The anomalies are ground truth, so the generator must place AND record them."""
+    data = generate(load_profile(PROFILE), seed=42)
+    booked = {r["BOOKING_ID"] for r in data["raw_bookings"]}
+    billed = {r["BOOKING_ID"] for r in data["raw_billings"]}
+    revenued = {r["BOOKING_ID"] for r in data["raw_revenue"]}
+
+    unbilled = booked - billed
+    unrecognised = booked - revenued
+    assert unbilled, "must seed bookings with no billing"
+    assert unrecognised, "must seed bookings with no revenue"
+
+    manifest = data["_anomalies"]
+    assert set(manifest["bookings_without_billing"]) == unbilled
+    assert set(manifest["bookings_without_revenue"]) == unrecognised
 
 
-def test_territory_assignments_change_mid_quarter():
-    """The SCD must actually slowly change, or q005/q010 test nothing."""
-    rows = _rows("raw_territory_assignments.csv")
-    by_territory = {}
-    for row in rows:
-        by_territory.setdefault(row["TERRITORY_ID"], []).append(row)
-    assert any(len(v) > 1 for v in by_territory.values())
+def test_perpetual_recognises_once_subscription_recognises_ratably():
+    data = generate(load_profile(PROFILE), seed=42)
+    by_booking = {r["BOOKING_ID"]: r for r in data["raw_bookings"]}
+    rows_for = {}
+    for r in data["raw_revenue"]:
+        rows_for.setdefault(r["BOOKING_ID"], []).append(r)
+
+    perpetual = [b for b, r in by_booking.items()
+                 if r["LICENSE_TYPE"] == "perpetual" and b in rows_for]
+    subscription = [b for b, r in by_booking.items()
+                    if r["LICENSE_TYPE"] == "subscription" and b in rows_for]
+    assert perpetual and subscription
+
+    assert all(len(rows_for[b]) == 1 for b in perpetual), "perpetual recognises once"
+    assert all(len(rows_for[b]) == by_booking[b]["TERM_MONTHS"] for b in subscription), \
+        "subscription recognises once per month of term"
 
 
-def test_bookings_reference_real_accounts():
-    account_ids = {row["ACCOUNT_ID"] for row in _rows("raw_accounts.csv")}
-    for row in _rows("raw_bookings.csv"):
-        assert row["ACCOUNT_ID"] in account_ids
+def test_recognised_revenue_sums_to_booking_amount():
+    data = generate(load_profile(PROFILE), seed=42)
+    by_booking = {r["BOOKING_ID"]: Decimal(r["AMOUNT"]) for r in data["raw_bookings"]}
+    total = {}
+    for r in data["raw_revenue"]:
+        total[r["BOOKING_ID"]] = total.get(r["BOOKING_ID"], Decimal("0")) + Decimal(r["AMOUNT"])
+    for booking_id, recognised in total.items():
+        assert recognised == by_booking[booking_id], f"{booking_id} revenue != booking amount"
+
+
+def test_null_segment_present():
+    data = generate(load_profile(PROFILE), seed=42)
+    assert any(r["SEGMENT"] == "" for r in data["raw_accounts"])
+
+
+def test_quarter_boundary_booking_exists():
+    """q008 tests an off-by-one on the quarter edge; the data must contain one."""
+    data = generate(load_profile(PROFILE), seed=42)
+    assert any(r["BOOKING_DATE"] == "2026-06-30" for r in data["raw_bookings"])
+
+
+def test_territory_reassignment_mid_quarter():
+    data = generate(load_profile(PROFILE), seed=42)
+    per_territory = {}
+    for r in data["raw_territory_assignments"]:
+        per_territory.setdefault(r["TERRITORY_ID"], []).append(r)
+    assert any(len(v) > 1 for v in per_territory.values())
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 2: Run it, confirm ModuleNotFoundError for gaa.synth**
 
-Run: `uv run pytest tests/test_seed_data.py -v`
-Expected: FAIL with `FileNotFoundError` for `raw_bookings.csv`
+Run: `uv run pytest tests/test_synth.py -v`
 
-- [ ] **Step 3: Write scripts/generate_seeds.py**
+- [ ] **Step 3: Write `warehouse/seeds/profile.yaml`**
 
-```python
-# scripts/generate_seeds.py
-"""Generate deterministic synthetic seed data.
-
-Deterministic by construction: a fixed seed and integer arithmetic only, so the
-same inputs always produce byte-identical CSVs. Money is emitted as a string with
-exactly two decimal places — never a float — so the warehouse's NUMBER(38,2)
-contract holds from the very first byte.
-"""
-import csv
-import random
-from datetime import date, timedelta
-from decimal import Decimal
-from pathlib import Path
-
-SEEDS = Path(__file__).parent.parent / "warehouse" / "seeds"
-REGIONS = ["EMEA", "AMER", "APAC"]
-SEGMENTS = ["Enterprise", "Mid-Market", "SMB", ""]  # "" becomes NULL; q008 depends on it
-RNG = random.Random(20260922)
-
-N_ACCOUNTS = 120
-N_REPS = 12
-FY26_Q3_START = date(2026, 5, 1)
-FY26_Q3_END = date(2026, 7, 31)
-
-
-def _money(lo: int, hi: int) -> str:
-    cents = RNG.randint(lo * 100, hi * 100)
-    return str(Decimal(cents) / 100)
-
-
-def _write(name: str, header: list[str], rows: list[list]) -> None:
-    SEEDS.mkdir(parents=True, exist_ok=True)
-    with (SEEDS / name).open("w", newline="") as fh:
-        writer = csv.writer(fh)
-        writer.writerow(header)
-        writer.writerows(rows)
-
-
-def main() -> None:
-    reps = [f"REP{i:03d}" for i in range(1, N_REPS + 1)]
-
-    accounts = []
-    for i in range(1, N_ACCOUNTS + 1):
-        region = REGIONS[i % len(REGIONS)]
-        segment = SEGMENTS[i % len(SEGMENTS)]
-        rep = reps[i % len(reps)]
-        accounts.append([f"ACC{i:04d}", f"Account {i:04d} Ltd", region, segment, rep])
-    _write("raw_accounts.csv", ["ACCOUNT_ID", "ACCOUNT_NAME", "REGION", "SEGMENT", "OWNER_REP_ID"], accounts)
-
-    bookings = []
-    booking_id = 1
-    for account in accounts:
-        for _ in range(RNG.randint(1, 4)):
-            offset = RNG.randint(0, (FY26_Q3_END - FY26_Q3_START).days)
-            bookings.append([
-                f"BK{booking_id:06d}", account[0],
-                (FY26_Q3_START + timedelta(days=offset)).isoformat(),
-                _money(1_000, 250_000),
-                "true" if booking_id % 37 == 0 else "false",
-                "USD",
-            ])
-            booking_id += 1
-    # One booking on the exact last day of FY26-Q2, for the q004 boundary test.
-    bookings.append([f"BK{booking_id:06d}", accounts[0][0], "2026-04-30", _money(5_000, 5_000), "false", "USD"])
-    _write("raw_bookings.csv", ["BOOKING_ID", "ACCOUNT_ID", "BOOKING_DATE", "AMOUNT", "IS_INTERCOMPANY", "CURRENCY"], bookings)
-
-    territories = []
-    for i, rep in enumerate(reps):
-        region = REGIONS[i % len(REGIONS)]
-        # Every rep is reassigned mid-quarter, so the SCD genuinely changes.
-        territories.append([f"T{i:03d}", region, rep, "2026-01-01", "2026-06-15"])
-        territories.append([f"T{i:03d}", region, reps[(i + 1) % len(reps)], "2026-06-15", "9999-12-31"])
-    _write("raw_territory_assignments.csv", ["TERRITORY_ID", "REGION", "REP_ID", "VALID_FROM", "VALID_TO"], territories)
-
-    quotas = [[rep, "FY26-Q3", _money(200_000, 600_000), "2026-05-01", "9999-12-31"] for rep in reps]
-    _write("raw_quota.csv", ["REP_ID", "FISCAL_QUARTER", "QUOTA_AMOUNT", "VALID_FROM", "VALID_TO"], quotas)
-
-
-if __name__ == "__main__":
-    main()
-```
-
-- [ ] **Step 4: Generate the seeds and write seeds/schema.yml**
-
-Run: `uv run python scripts/generate_seeds.py`
+The domain shape lives here as data, not in code. Fiscal year is the calendar year.
 
 ```yaml
-# warehouse/seeds/schema.yml
-version: 2
-seeds:
-  - name: raw_bookings
-    config:
-      column_types:
-        AMOUNT: NUMBER(38,2)
-        BOOKING_DATE: DATE
-        IS_INTERCOMPANY: BOOLEAN
-  - name: raw_quota
-    config:
-      column_types:
-        QUOTA_AMOUNT: NUMBER(38,2)
-        VALID_FROM: DATE
-        VALID_TO: DATE
-  - name: raw_territory_assignments
-    config:
-      column_types:
-        VALID_FROM: DATE
-        VALID_TO: DATE
+seed: 42
+fiscal_year_start_month: 1
+accounts:
+  count: 120
+  regions: [EMEA, AMER, APAC]
+  segments: ["Enterprise", "Mid-Market", "SMB", ""]   # "" becomes NULL
+  reps: 12
+bookings:
+  per_account: [1, 4]
+  amount_range: [1000, 250000]
+  window: ["2026-01-01", "2026-09-30"]
+  license_split: {perpetual: 0.4, subscription: 0.6}
+  subscription_terms: [12, 24, 36]
+  intercompany_every: 37
+anomalies:
+  bookings_without_billing: 6
+  bookings_without_revenue: 5
+  quarter_boundary_dates: ["2026-06-30"]
+  territory_reassignment_date: "2026-08-15"
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [ ] **Step 4: Write `gaa/synth/profile.py`**
 
-Run: `uv run pytest tests/test_seed_data.py -v`
-Expected: 5 passed
+Pydantic models mirroring the YAML above — `ColumnProfile`, `TableProfile`, `DatasetProfile`, and
+`load_profile(path) -> DatasetProfile` using `yaml.safe_load`. Mirror the structure of
+`gaa/spec/loader.py`: a `ProfileError` for malformed input, no raw SQL anywhere, and validation that
+`license_split` sums to 1.0 and every anomaly count is smaller than the row count it applies to.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Write `gaa/synth/generate.py`**
+
+`generate(profile, seed) -> dict[str, list[dict]]`, returning one key per table plus `_anomalies`,
+a manifest of every deliberately placed anomaly. Requirements:
+
+- money as `str` produced from integer cents, never `float`
+- `random.Random(seed)` only; no module-level `random`, no wall-clock reads
+- perpetual bookings produce exactly one revenue row on the booking date; subscription bookings
+  produce one row per month of `term_months`, the final row absorbing any rounding remainder so
+  recognised revenue sums exactly to the booking amount
+- billings mirror bookings one-to-one except for the seeded unbilled set
+- anomalies chosen deterministically from the sorted booking list, never by sampling
+
+- [ ] **Step 6: Add the CLI command and regenerate seeds**
+
+```python
+# append to gaa/cli.py
+@cli.command("synth")
+@click.option("--profile", type=click.Path(path_type=Path),
+              default=Path("warehouse/seeds/profile.yaml"))
+@click.option("--out", type=click.Path(path_type=Path), default=Path("warehouse/seeds"))
+def synth(profile: Path, out: Path) -> None:
+    """Generate synthetic seed data from a profile. Deterministic for a given seed."""
+    from gaa.synth.generate import generate
+    from gaa.synth.profile import load_profile
+
+    spec = load_profile(profile)
+    data = generate(spec, seed=spec.seed)
+    for table, rows in data.items():
+        if table.startswith("_"):
+            continue
+        path = out / f"{table}.csv"
+        with path.open("w", newline="") as fh:
+            writer = csv.DictWriter(fh, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+        click.echo(f"{path}: {len(rows)} rows")
+    anomalies = out / "_anomalies.json"
+    anomalies.write_text(json.dumps(data["_anomalies"], indent=2, sort_keys=True))
+    click.echo(f"{anomalies}: anomaly manifest")
+```
+
+Run: `uv run gaa synth`
+
+- [ ] **Step 7: Write tests/test_seed_data.py against the generated CSVs**
+
+Assert on the committed files rather than the in-memory result: money has exactly two decimal
+places as text, all three regions appear, at least one NULL segment, bookings reference real
+accounts, and `_anomalies.json` matches what is actually missing from the billing and revenue files.
+
+- [ ] **Step 8: Run everything and commit**
+
+Run: `uv run pytest -q && uv run ruff check gaa tests`
 
 ```bash
-git add scripts/generate_seeds.py warehouse/seeds/ tests/test_seed_data.py
-git commit -m "feat(warehouse): deterministic synthetic seed data"
+git add gaa/synth/ gaa/cli.py warehouse/seeds/ tests/test_synth.py tests/test_seed_data.py
+git commit -m "feat(synth): generic profile-driven synthetic data generator"
 ```
 
 ---

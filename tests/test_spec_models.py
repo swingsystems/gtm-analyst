@@ -71,4 +71,5 @@ def test_invariant_kind_validated():
 def test_failure_categories_present():
     assert FailureCategory.GOVERNANCE_LEAK.value == "governance_leak"
     assert FailureCategory.GOVERNANCE_OVER_BLOCK.value == "governance_over_block"
-    assert len(list(FailureCategory)) == 8
+    assert FailureCategory.ORPHANS_DROPPED.value == "orphans_dropped"
+    assert len(list(FailureCategory)) == 9

@@ -100,8 +100,30 @@ Five layers, each independently testable and replaceable.
 
 ### 1. Warehouse (`warehouse/`)
 
-GTM/revenue domain — accounts, opportunities, bookings, ARR roll-forward, effective-dated quota and
-territory, fiscal calendar. dbt models, staged → intermediate → marts.
+Three reconcilable facts, because the reconciliation between them is where the interesting failures
+live:
+
+```
+FCT_BOOKINGS   booking_id, account_id, booking_date, amount, license_type
+               (perpetual|subscription), term_months, region, owner_rep_id,
+               is_intercompany
+FCT_BILLINGS   billing_id, booking_id, invoice_date, amount
+FCT_REVENUE    revenue_id, booking_id, recognition_date, amount
+```
+
+Plus `DIM_ACCOUNT`, `DIM_TERRITORY_SCD` (effective-dated), `DIM_QUOTA` (effective-dated), and
+`DIM_FISCAL_CALENDAR`. dbt models, staged → intermediate → marts. Fiscal year is the **calendar
+year**: 2026-Q3 is 1 July to 30 September 2026.
+
+**Recognition follows license type.** Perpetual recognizes in full on the booking date; subscription
+recognizes ratably across `term_months`. Identical signed amounts, entirely different revenue
+timing — which makes *"why doesn't my booking show up in revenue?"* a question with a correct,
+auditable answer that a naive agent gets wrong.
+
+**The reconciliation rule:** every booking should appear in billings and have revenue recorded. The
+generated data deliberately violates it in known places. Asked to reconcile, an agent writes an
+INNER JOIN, silently drops the unmatched rows, and reports that everything ties out — a false answer
+shaped like good news. Finding the orphans is the test.
 
 GTM is the **worked example**, not the product. Adopters replace this layer wholesale. It exists so
 the reference deployment runs end to end and so the failure taxonomy has realistic material.
@@ -110,10 +132,13 @@ Non-negotiables:
 
 - Monetary columns `NUMBER(38,2)`. Never `FLOAT` — rounding artifacts are indistinguishable from
   real metric errors and would corrupt the evaluation.
-- Source timestamps UTC; a fiscal calendar dimension owns every period boundary.
+- Source timestamps UTC; `DIM_FISCAL_CALENDAR` owns every period boundary.
 - Territory and quota assignments slowly-changing with effective dates. This is where real analytics
   agents fail: they apply today's territory to last quarter's bookings.
 - NULL semantics declared per column, because a dropped NULL segment is a scored failure category.
+
+All data is synthetic, produced by a generic profile-driven generator rather than a fixture script.
+See `docs/adr/0002-synthetic-data-no-admin-ui-deferred-deal-intelligence.md`.
 
 ### 2. Governance (`warehouse/governance/`)
 
