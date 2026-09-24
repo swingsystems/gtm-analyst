@@ -1,0 +1,40 @@
+#!/bin/sh
+# Refuse any commit carrying a credential-shaped string.
+#
+# .gitignore is not a control: it is one `git add -f` or one careless rename
+# away from failing, and this repository is intended to be public. This checks
+# what is actually STAGED, which is the only thing that can reach a remote.
+#
+# It never echoes matched text. An earlier version printed a truncated match to
+# be helpful and put 40 characters of a live key into a terminal log, which is
+# the failure mode a secret scanner should be least likely to have.
+set -e
+
+PATTERNS='sk-ant-api[0-9]{2}-[A-Za-z0-9_-]{20,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|AKIA[0-9A-Z]{16}'
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+# Never allow .env, however it got staged.
+if echo "$staged" | grep -qE '(^|/)\.env$'; then
+    echo "pre-commit: refusing — .env is staged and holds live credentials." >&2
+    exit 1
+fi
+
+offenders=""
+for file in $staged; do
+    if git diff --cached -U0 -- "$file" | grep -E '^\+' | grep -qE "$PATTERNS"; then
+        offenders="$offenders $file"
+    fi
+done
+
+if [ -n "$offenders" ]; then
+    echo "pre-commit: refusing — credential-shaped content staged in:" >&2
+    for file in $offenders; do echo "  $file" >&2; done
+    echo "" >&2
+    echo "Matched text is deliberately not shown. Inspect with:" >&2
+    echo "  git diff --cached -- <file>" >&2
+    echo "If genuinely a false positive, commit with --no-verify and say why." >&2
+    exit 1
+fi
+exit 0
