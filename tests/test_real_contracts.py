@@ -9,6 +9,7 @@ CONTRACTS = Path(__file__).parent.parent / "semantic" / "contracts"
 
 # Columns that actually exist on each persona view.
 VIEW_COLUMNS = {
+    "V_TERRITORY": {"TERRITORY_ID", "REGION", "REP_ID", "VALID_FROM", "VALID_TO"},
     "V_BOOKINGS": {"BOOKING_ID", "ACCOUNT_ID", "BOOKING_DATE", "FISCAL_QUARTER", "REGION",
                    "OWNER_REP_ID", "AMOUNT", "LICENSE_TYPE", "TERM_MONTHS", "IS_INTERCOMPANY",
                    "SEGMENT", "ACCOUNT_NAME"},
@@ -30,6 +31,8 @@ def test_the_expected_metrics_exist(contracts):
     assert set(contracts.metrics) == {
         "bookings_amount@1", "revenue_amount@1", "billings_amount@1",
         "booking_count@1", "account_count@1",
+        # Declares a join, so only the safe-join arm is shown it.
+        "bookings_by_territory@1",
     }
 
 
@@ -116,3 +119,32 @@ def test_the_declared_columns_match_the_live_views(contracts):
                 f"  only in map:  {sorted(declared - actual)}\n"
                 f"  only in view: {sorted(actual - declared)}"
             )
+
+
+def test_every_joined_table_and_column_exists_too(contracts):
+    """A join naming a column the table does not have fails at query time,
+    which is long after the mistake was made and far from where it was made."""
+    for key, contract in contracts.metrics.items():
+        for join in contract.joins:
+            assert join.table in VIEW_COLUMNS, f"{key}: unknown join table {join.table}"
+            right_columns = VIEW_COLUMNS[join.table]
+            left_columns = VIEW_COLUMNS[contract.table]
+            for pair in join.keys:
+                assert pair.left in left_columns, f"{key}: {pair.left} not on {contract.table}"
+                assert pair.right in right_columns, f"{key}: {pair.right} not on {join.table}"
+            if join.validity:
+                assert join.validity.left_date in left_columns, key
+                assert join.validity.valid_from in right_columns, key
+                assert join.validity.valid_to in right_columns, key
+            for dimension in join.dimensions:
+                assert dimension.column in right_columns, f"{key}: {dimension.column}"
+
+
+def test_effective_dated_joins_all_declare_a_window(contracts):
+    """Belt and braces over the model validator: the committed contracts must
+    not merely be constructible, they must actually carry the predicate."""
+    for key, contract in contracts.metrics.items():
+        for join in contract.joins:
+            if join.effective_dated:
+                assert join.validity is not None, f"{key}: {join.name} has no window"
+                assert join.validity.half_open, f"{key}: {join.name} is not half-open"

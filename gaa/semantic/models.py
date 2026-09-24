@@ -2,7 +2,7 @@ import re
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # A column or table name is interpolated into generated SQL as an identifier, never
 # bound as a parameter. Anything that is not a bare identifier is therefore an
@@ -96,6 +96,70 @@ class Filter(BaseModel):
         return _validate_identifier(v)
 
 
+class JoinKey(BaseModel):
+    """One equality condition between the base table and a joined one."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    left: str
+    right: str
+
+    @field_validator("left", "right")
+    @classmethod
+    def _identifier(cls, v: str) -> str:
+        return _validate_identifier(v)
+
+
+class ValidityWindow(BaseModel):
+    """The predicate that makes an effective-dated join correct.
+
+    Half-open by declaration: [valid_from, valid_to). The inclusive reading
+    silently drops rows landing on a handover date, which is exactly how q011's
+    ground truth was wrong until the data was corrected to match.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    left_date: str
+    valid_from: str
+    valid_to: str
+    half_open: bool = True
+
+    @field_validator("left_date", "valid_from", "valid_to")
+    @classmethod
+    def _identifier(cls, v: str) -> str:
+        return _validate_identifier(v)
+
+
+class Join(BaseModel):
+    """A declared join. The agent never writes one, so it cannot forget a
+    predicate; the contract author can, and this is where that is caught."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: str
+    table: str
+    keys: list[JoinKey]
+    effective_dated: bool = False
+    validity: ValidityWindow | None = None
+    dimensions: list["Dimension"] = Field(default_factory=list)
+
+    @field_validator("table")
+    @classmethod
+    def _identifier(cls, v: str) -> str:
+        return _validate_identifier(v)
+
+    @model_validator(mode="after")
+    def _effective_dated_joins_need_a_window(self) -> "Join":
+        if self.effective_dated and self.validity is None:
+            raise ValueError(
+                f"join {self.name!r} is effective_dated but declares no validity window; "
+                "without one it either multiplies rows or drops them at handovers, and "
+                "both produce a number that looks plausible"
+            )
+        return self
+
+
 class MetricContract(BaseModel):
     """The governed definition of one metric. Metadata only -- it can carry no SQL.
 
@@ -123,6 +187,7 @@ class MetricContract(BaseModel):
     measure: Measure
     dimensions: list[Dimension] = Field(default_factory=list)
     default_filters: list[Filter] = Field(default_factory=list)
+    joins: list[Join] = Field(default_factory=list)
     null_policy: Literal["preserve", "exclude"]
     period_column: str
 

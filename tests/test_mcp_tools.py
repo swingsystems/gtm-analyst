@@ -63,11 +63,14 @@ def test_run_sql_is_available_to_the_free_arm_only_by_convention():
 # ------------------------------------------------------------------ discovery
 
 
-def test_list_metrics_returns_every_contract():
+def test_list_metrics_returns_every_contract_the_arm_may_see():
+    """Defaults to showing joined metrics. The strict arm constructs its surface
+    with allow_joins=False, and that filtering is what separates the two
+    constrained arms -- see tests/test_safe_joins.py."""
     metrics = _surface("FINANCE_GLOBAL").list_metrics()
     assert {m["name"] for m in metrics} == {
         "bookings_amount@1", "revenue_amount@1", "billings_amount@1",
-        "booking_count@1", "account_count@1",
+        "booking_count@1", "account_count@1", "bookings_by_territory@1",
     }
     assert all(m["description"] for m in metrics)
 

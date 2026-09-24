@@ -1,0 +1,43 @@
+name: bookings_by_territory
+version: 1
+description: >-
+  Bookings attributed to the sales territory that was in force on the booking
+  date, not the territory in force today. Territory assignments change
+  mid-quarter, so the two differ and only the first reconciles to a historical
+  number. The join carries a mandatory validity window that the compiler always
+  emits: the agent asks for a territory dimension and never writes the predicate
+  that makes attributing it correct.
+owner: sales-ops
+table: V_BOOKINGS
+grain: one row per booking, attributed to a single territory
+measure:
+  column: AMOUNT
+  aggregation: sum
+period_column: FISCAL_QUARTER
+null_policy: exclude
+dimensions:
+  - name: region
+    column: REGION
+    description: Sales region of the account, carried on the booking.
+  - name: account_id
+    column: ACCOUNT_ID
+    description: Account the booking belongs to.
+joins:
+  - name: territory
+    table: V_TERRITORY
+    effective_dated: true
+    keys:
+      - {left: OWNER_REP_ID, right: REP_ID}
+    validity:
+      left_date: BOOKING_DATE
+      valid_from: VALID_FROM
+      valid_to: VALID_TO
+      half_open: true
+    dimensions:
+      - name: territory_id
+        column: TERRITORY_ID
+        description: >-
+          Territory in force when the booking was signed. Attributing to the
+          current territory instead would move revenue between territories
+          whenever a rep is reassigned.
+default_filters: []

@@ -61,9 +61,40 @@ def _measure_sql(contract: MetricContract) -> str:
     return f"{agg}({column})"
 
 
+def _join_sql(contract: MetricContract) -> tuple[list[str], list[str]]:
+    """Render every declared join, with its mandatory predicates always present.
+
+    The agent asks for a dimension by name; everything that makes the join
+    correct is added here. There is no request shape that omits a validity
+    window, because the request never mentions one.
+    """
+    clauses, tables = [], []
+    for join in contract.joins:
+        conditions = [f"{join.table}.{k.right} = {contract.table}.{k.left}" for k in join.keys]
+        if join.validity is not None:
+            window = join.validity
+            operator = "<" if window.half_open else "<="
+            conditions.append(
+                f"{contract.table}.{window.left_date} >= {join.table}.{window.valid_from}"
+            )
+            conditions.append(
+                f"{contract.table}.{window.left_date} {operator} {join.table}.{window.valid_to}"
+            )
+        clauses.append(f"JOIN {join.table} ON " + " AND ".join(conditions))
+        tables.append(join.table)
+    return clauses, tables
+
+
 def _resolve_dimensions(contract: MetricContract, names: list[str]) -> list[tuple[str, str]]:
-    """Map requested dimension names to (alias, column expression)."""
+    """Map requested dimension names to (alias, column expression).
+
+    Dimensions declared on a join are reachable exactly like the base table's,
+    so the agent does not need to know which table a column lives on.
+    """
     declared = {d.name: d for d in contract.dimensions}
+    for join in contract.joins:
+        for dimension in join.dimensions:
+            declared[dimension.name] = dimension
     resolved = []
     for name in names:
         dimension = declared.get(name)
@@ -121,6 +152,7 @@ def compile_query(contracts: ContractSet, request: QueryRequest) -> CompiledQuer
     # caller cannot reach an arbitrary column on the underlying view.
     allowed = (
         {d.column for d in contract.dimensions}
+        | {d.column for j in contract.joins for d in j.dimensions}
         | {f.column for f in contract.default_filters}
         | {contract.period_column}
     )
@@ -138,7 +170,10 @@ def compile_query(contracts: ContractSet, request: QueryRequest) -> CompiledQuer
         where_parts.append(clause)
         params.extend(values)
 
+    join_clauses, joined_tables = _join_sql(contract)
     sql = f"SELECT {', '.join(select_parts)}\nFROM {contract.table}"
+    for clause in join_clauses:
+        sql += f"\n{clause}"
     if where_parts:
         sql += "\nWHERE " + "\n  AND ".join(where_parts)
     if group_parts:
@@ -153,5 +188,5 @@ def compile_query(contracts: ContractSet, request: QueryRequest) -> CompiledQuer
         sql=sql,
         params=params,
         metrics_used=[request.metric],
-        lineage=[contract.table],
+        lineage=[contract.table, *joined_tables],
     )

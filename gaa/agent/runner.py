@@ -34,6 +34,16 @@ MAX_TURNS = 16
 
 # Which tools each arm may see. The strict arm is not merely told not to write
 # SQL -- run_sql is absent from its tool list, so the separation is structural.
+# Whether an arm may see metrics that declare joins. This is the ONLY thing
+# separating the two constrained arms, and it has to be enforced rather than
+# assumed: both load the same contracts directory, so a join-bearing contract
+# added for one arm is visible to the other unless filtered.
+ARM_ALLOWS_JOINS: dict[str, bool] = {
+    "strict-contract": False,
+    "safe-join-contract": True,
+    "free-sql": True,
+}
+
 ARM_TOOLS: dict[str, tuple[str, ...]] = {
     "strict-contract": ("list_metrics", "describe_metric", "query_metric", "explain_lineage"),
     "safe-join-contract": ("list_metrics", "describe_metric", "query_metric", "explain_lineage"),
@@ -81,7 +91,10 @@ def answer(
     client: anthropic.Anthropic | None = None,
 ) -> AnswerCard:
     """Answer one question as one persona, using one arm's tools."""
-    surface = ToolSurface(persona, contracts_root, audit_path=audit_path)
+    surface = ToolSurface(
+        persona, contracts_root, audit_path=audit_path,
+        allow_joins=ARM_ALLOWS_JOINS[arm],
+    )
     client = client or anthropic.Anthropic()
 
     messages: list[dict[str, Any]] = [{"role": "user", "content": question}]

@@ -13,7 +13,7 @@ from gaa.connection import session_for_persona
 from gaa.mcp.audit import AuditEntry, AuditLog
 from gaa.runner.reference import normalise
 from gaa.semantic.compile import CompileError, QueryRequest, compile_query
-from gaa.semantic.loader import load_contracts
+from gaa.semantic.loader import ContractSet, load_contracts
 from gaa.spec.models import Persona
 from gaa.spec.sql import sql_statements, strip_line_comments
 
@@ -36,9 +36,33 @@ class ToolSurface:
         Path(__file__).parent.parent.parent / "warehouse" / "governance" / "lineage.json"
     )
 
-    def __init__(self, persona: Persona, contracts_root: Path, audit_path: Path | None = None):
+    def __init__(
+        self,
+        persona: Persona,
+        contracts_root: Path,
+        audit_path: Path | None = None,
+        allow_joins: bool = True,
+    ):
+        """Bind a persona, and decide whether joined metrics are visible at all.
+
+        allow_joins=False hides every contract declaring a join, which is what
+        makes the strict arm strict. Filtering here rather than in a separate
+        directory keeps one source of truth for a metric definition: the two
+        constrained arms then differ in what they are shown, not in what the
+        organisation believes a metric means.
+
+        Without this the arms silently converge, because adding one join-bearing
+        contract to the shared directory hands the strict arm a join surface and
+        the experiment quietly compares an arm against itself.
+        """
         self._persona = persona
-        self._contracts = load_contracts(contracts_root)
+        contracts = load_contracts(contracts_root)
+        if not allow_joins:
+            contracts = ContractSet(
+                metrics={k: c for k, c in contracts.metrics.items() if not c.joins},
+                root=contracts.root,
+            )
+        self._contracts = contracts
         self._audit = AuditLog(audit_path)
 
     # -------------------------------------------------------------- helpers
