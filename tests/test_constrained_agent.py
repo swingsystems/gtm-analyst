@@ -86,3 +86,26 @@ def test_the_card_always_carries_provenance():
     if not card.is_refusal:
         assert card.sql and card.query_id and card.lineage
         assert card.context["role"] == "GAA_SALES_DIR_EMEA"
+
+
+def test_every_arm_gets_the_same_turn_budget():
+    """A limit that binds on one arm and not another measures patience rather
+    than grounding."""
+    from gaa.agent.runner import MAX_TURNS
+
+    assert MAX_TURNS >= 12, "too tight for an arm that has to explore a schema"
+
+
+@live
+def test_turn_exhaustion_is_reported_not_disguised(monkeypatch):
+    """An agent stopped mid-investigation has not answered. Presenting its last
+    probe as the result would put an exploratory number into a cell the scorer
+    treats as final."""
+    from gaa.agent import runner
+
+    monkeypatch.setattr(runner, "MAX_TURNS", 1)
+    card = runner.answer(QUESTIONS["q011"].text, SPEC.personas["FINANCE_GLOBAL"],
+                         "free-sql", CONTRACTS)
+    assert card.is_refusal
+    assert "turn" in (card.why_not or "").lower()
+    assert card.confidence == "none"

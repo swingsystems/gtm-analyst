@@ -25,7 +25,12 @@ from gaa.mcp.tools import ToolError, ToolSurface
 from gaa.spec.models import Persona
 
 MODEL = "claude-sonnet-5"
-MAX_TURNS = 8
+
+# Every arm gets the SAME budget. A turn limit that binds on one arm and not
+# another measures patience rather than grounding. Raised from 8 after watching
+# the free-SQL arm spend every turn investigating a real data bug and never
+# reach an answer.
+MAX_TURNS = 16
 
 # Which tools each arm may see. The strict arm is not merely told not to write
 # SQL -- run_sql is absent from its tool list, so the separation is structural.
@@ -81,6 +86,7 @@ def answer(
 
     messages: list[dict[str, Any]] = [{"role": "user", "content": question}]
     executions: list[dict[str, Any]] = []
+    finished = False
 
     for _ in range(MAX_TURNS):
         response = client.messages.create(
@@ -94,6 +100,7 @@ def answer(
 
         tool_uses = [b for b in response.content if b.type == "tool_use"]
         if not tool_uses:
+            finished = True
             break
 
         results = []
@@ -120,6 +127,12 @@ def answer(
 
     text = "\n".join(b.text for b in response.content if b.type == "text")
 
+    # An agent stopped mid-investigation has not answered, and its last query is
+    # a probe rather than a result. Reporting that probe as the answer would put
+    # an exploratory number in a cell the scorer treats as final -- so the card
+    # says what happened instead.
+    exhausted = not finished
+
     confidence, basis = "none", "model did not state one"
     match = _CONFIDENCE.search(text)
     if match:
@@ -129,6 +142,22 @@ def answer(
     why_not = why_not_match.group(1).strip() if why_not_match else None
 
     last = executions[-1] if executions else None
+    if exhausted:
+        return AnswerCard(
+            question=question, persona=persona.name, arm=arm, rows=[], sql=None,
+            metrics_used=[], lineage=[],
+            context={
+                "persona": persona.name, "role": persona.snowflake_role,
+                "schema": persona.snowflake_schema,
+            },
+            query_id=None, confidence="none",
+            confidence_basis=f"stopped after {MAX_TURNS} turns without concluding",
+            why_not=(
+                f"Exhausted the {MAX_TURNS}-turn budget while still working. "
+                f"{len(executions)} quer{'y' if len(executions) == 1 else 'ies'} ran, "
+                "none reported as a final answer."
+            ),
+        )
     if last is None:
         return AnswerCard(
             question=question, persona=persona.name, arm=arm, rows=[], sql=None,
