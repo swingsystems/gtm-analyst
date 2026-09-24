@@ -14,6 +14,12 @@ from gaa.runner.reference import normalise
 from gaa.semantic.compile import CompileError, QueryRequest, compile_query
 from gaa.semantic.loader import load_contracts
 from gaa.spec.models import Persona
+from gaa.spec.sql import sql_statements, strip_line_comments
+
+# An ALLOW-list, not a deny-list. A list of forbidden keywords is defeated by
+# the first keyword nobody thought to forbid; a list of permitted leaders fails
+# closed instead. Snowflake statements that read begin with SELECT or WITH.
+_READ_ONLY_LEADERS = frozenset({"SELECT", "WITH"})
 
 
 class ToolError(Exception):
@@ -23,7 +29,7 @@ class ToolError(Exception):
 class ToolSurface:
     """Read-only tools, scoped to one persona for the life of the object."""
 
-    TOOLS = ("list_metrics", "describe_metric", "query_metric")
+    TOOLS = ("list_metrics", "describe_metric", "query_metric", "run_sql")
 
     def __init__(self, persona: Persona, contracts_root: Path, audit_path: Path | None = None):
         self._persona = persona
@@ -134,6 +140,55 @@ class ToolSurface:
                 "params": compiled.params,
                 "metrics_used": compiled.metrics_used,
                 "lineage": compiled.lineage,
+                "query_id": entry.query_id,
+                "context": self._context(),
+            }
+
+    def run_sql(self, statement: str) -> dict[str, Any]:
+        """Execute arbitrary read-only SQL as this persona.
+
+        This is the unconstrained comparison arm, so its permissiveness is a
+        requirement: CTEs, joins, window functions and subqueries must all work,
+        or the experiment handicaps the alternative it is measuring against and
+        the contracts look good for the wrong reason.
+
+        What it may not do is leave read-only territory. The warehouse boundary
+        still applies because this runs as the persona -- this guard is a second
+        layer, not the only one.
+        """
+        with self._audit.around(self._entry("run_sql")) as entry:
+            statements = sql_statements(statement)
+            if len(statements) != 1:
+                raise ToolError(
+                    f"run_sql takes a single statement, found {len(statements)}"
+                )
+
+            # Strip comments BEFORE reading the leading keyword, or commenting
+            # out a SELECT silently promotes whatever follows it.
+            body = strip_line_comments(statements[0]).strip()
+            leader = body.split(None, 1)[0].upper() if body else ""
+            if leader not in _READ_ONLY_LEADERS:
+                raise ToolError(
+                    f"run_sql is read-only: statements must begin with "
+                    f"{' or '.join(sorted(_READ_ONLY_LEADERS))}, got {leader or 'nothing'!r}"
+                )
+
+            with session_for_persona(self._persona) as conn:
+                cursor = conn.cursor()
+                cursor.execute(body)
+                columns = [c[0] for c in cursor.description]
+                rows = [
+                    dict(zip(columns, (normalise(v) for v in row), strict=True))
+                    for row in cursor.fetchall()
+                ]
+                entry.query_id = cursor.sfqid
+
+            return {
+                "rows": rows,
+                "sql": body,
+                "params": [],
+                "metrics_used": [],
+                "lineage": [],
                 "query_id": entry.query_id,
                 "context": self._context(),
             }

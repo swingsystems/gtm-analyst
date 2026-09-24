@@ -40,7 +40,24 @@ def test_no_tool_accepts_a_persona_role_or_schema_argument():
 
 
 def test_the_surface_exposes_exactly_the_declared_tools():
-    assert set(ToolSurface.TOOLS) == {"list_metrics", "describe_metric", "query_metric"}
+    """Pinned deliberately. Widening the agent's reach should be an explicit
+    edit here, not a side effect of adding a method."""
+    assert set(ToolSurface.TOOLS) == {
+        "list_metrics", "describe_metric", "query_metric", "run_sql",
+    }
+
+
+def test_run_sql_is_available_to_the_free_arm_only_by_convention():
+    """Nothing in the surface prevents a contract-constrained agent from calling
+    run_sql -- the arms are separated by which tools their prompts describe, not
+    by capability. Recorded here because it is a real limitation: a constrained
+    agent that decided to write raw SQL would not be stopped by this layer, and
+    the experiment depends on it not doing so.
+
+    The warehouse boundary still holds either way, so the risk is to the
+    experiment's validity, not to the data.
+    """
+    assert "run_sql" in ToolSurface.TOOLS
 
 
 # ------------------------------------------------------------------ discovery
