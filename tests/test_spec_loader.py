@@ -78,3 +78,22 @@ def test_missing_personas_file_raises_spec_error(tmp_path):
     (tmp_path / "reference_sql").mkdir()
     with pytest.raises(SpecError, match="required spec file is missing"):
         load_spec(tmp_path)
+
+
+def test_the_yaml_tag_is_rejected_AT_THE_PARSE_LAYER(tmp_path):
+    """Pin the mechanism, not just the outcome.
+
+    test_unsafe_yaml_tag_rejected asserts only that a SpecError is raised, and
+    Question's extra="forbid" would produce one anyway by rejecting the unknown
+    key. That leaves the test green if safe_load were swapped for yaml.load --
+    after the payload had already executed. Asserting the cause is a YAMLError
+    pins the refusal to the parse layer, where it has to happen.
+    """
+    import yaml
+
+    _write_spec(tmp_path, GOOD_QUESTION + "\nevil: !!python/object/apply:os.system ['echo x']\n")
+    with pytest.raises(SpecError) as excinfo:
+        load_spec(tmp_path)
+    assert isinstance(excinfo.value.__cause__, yaml.YAMLError), (
+        f"refused by {type(excinfo.value.__cause__).__name__}, not by the parser"
+    )

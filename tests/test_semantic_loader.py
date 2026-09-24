@@ -82,3 +82,27 @@ def test_empty_directory_raises(tmp_path):
     tmp_path.mkdir(exist_ok=True)
     with pytest.raises(ContractError, match="no contracts"):
         load_contracts(tmp_path)
+
+
+def test_the_yaml_tag_is_rejected_AT_THE_PARSE_LAYER(tmp_path):
+    """Pin the mechanism, not just the outcome.
+
+    The test above asserts a ContractError is raised, which `extra="forbid"`
+    would also produce by rejecting the unknown `evil:` key. So it stays green
+    even if `safe_load` is swapped for `yaml.load` -- except by then os.system
+    has already run. Verified: doing exactly that prints PWNED and the test
+    still passes.
+
+    The parse layer must be what refuses, so this asserts the ContractError was
+    caused by a YAMLError rather than by model validation.
+    """
+    import yaml
+
+    _write(tmp_path, "evil.yaml",
+           GOOD + "\nevil: !!python/object/apply:os.system ['echo pwned']\n")
+    with pytest.raises(ContractError) as excinfo:
+        load_contracts(tmp_path)
+    assert isinstance(excinfo.value.__cause__, yaml.YAMLError), (
+        "the tag must be refused while parsing, before any value reaches the "
+        f"model; cause was {type(excinfo.value.__cause__).__name__}"
+    )
