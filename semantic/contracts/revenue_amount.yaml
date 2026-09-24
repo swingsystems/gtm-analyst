@@ -14,6 +14,12 @@ measure:
   column: AMOUNT
   aggregation: sum
 dimensions:
+  - name: segment
+    column: SEGMENT
+    description: >-
+      Customer segment, carried from the account. Nullable by design: accounts
+      with no segment must still appear as their own group, or the total stops
+      reconciling to revenue_amount without any visible error.
   - name: region
     column: REGION
     description: Sales region credited with the revenue, carried from the originating booking.

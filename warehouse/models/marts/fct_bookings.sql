@@ -8,6 +8,8 @@ SELECT
     cal.FISCAL_QUARTER,
     a.REGION,
     a.OWNER_REP_ID,
+    a.SEGMENT,
+    a.ACCOUNT_NAME,
     b.AMOUNT,
     b.LICENSE_TYPE,
     b.TERM_MONTHS,

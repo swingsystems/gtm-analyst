@@ -11,6 +11,8 @@ SELECT
     cal.FISCAL_QUARTER,
     r.REGION,
     r.OWNER_REP_ID,
+    r.SEGMENT,
+    r.ACCOUNT_NAME,
     b.LICENSE_TYPE,
     r.AMOUNT
 FROM {{ ref('stg_revenue') }} AS r

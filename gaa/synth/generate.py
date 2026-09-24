@@ -156,6 +156,8 @@ def _generate_bookings(
                     "REGION": account["REGION"],
                     "SEGMENT": account["SEGMENT"],
                     "OWNER_REP_ID": account["OWNER_REP_ID"],
+                    "SEGMENT": account["SEGMENT"],
+                    "ACCOUNT_NAME": account["ACCOUNT_NAME"],
                     "IS_INTERCOMPANY": "false",
                 }
             )
@@ -239,6 +241,8 @@ def _generate_revenue(bookings: list[Row], unrecognised: set[str]) -> list[Row]:
                     "LICENSE_TYPE": booking["LICENSE_TYPE"],
                     "REGION": booking["REGION"],
                     "OWNER_REP_ID": booking["OWNER_REP_ID"],
+                    "SEGMENT": booking["SEGMENT"],
+                    "ACCOUNT_NAME": booking["ACCOUNT_NAME"],
                 }
             )
     return revenue

@@ -9,6 +9,10 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 import snowflake.connector
+
+# Bind values server-side rather than interpolating them into the statement
+# client-side. See gaa/semantic/compile.py for why this matters here.
+snowflake.connector.paramstyle = "qmark"
 from cryptography.hazmat.primitives import serialization
 
 from gaa.config import Settings, load_settings
