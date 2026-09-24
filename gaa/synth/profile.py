@@ -80,6 +80,11 @@ class AnomaliesProfile(BaseModel):
     bookings_without_revenue: int = Field(ge=0)
     quarter_boundary_dates: list[date] = Field(default_factory=list)
     territory_reassignment_date: date
+    # Anomalies spread evenly across the whole booking window mostly land
+    # outside the quarter the questions ask about, leaving the reconciliation
+    # questions with almost no signal. Confining them to the window under test
+    # is what makes q003 and q004 measure anything.
+    concentrate_window: list[date] = Field(default_factory=list)
 
 
 class DatasetProfile(BaseModel):

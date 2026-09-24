@@ -16,6 +16,9 @@ bookings:
 billings:
   lag_days: [0, 45]
 anomalies:
+  # Concentrated in 2026-Q3 because that is the quarter every question asks
+  # about. Spread across the full booking window they land where nothing looks.
+  concentrate_window: ["2026-07-01", "2026-09-30"]
   bookings_without_billing: 6
   bookings_without_revenue: 5
   quarter_boundary_dates: ["2026-06-30"]

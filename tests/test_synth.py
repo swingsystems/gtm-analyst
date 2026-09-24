@@ -132,3 +132,29 @@ def test_intercompany_bookings_recognise_no_revenue():
     assert intercompany, "profile must generate some intercompany bookings"
     assert not (intercompany & with_revenue)
     assert set(data["_anomalies"]["bookings_intercompany"]) == intercompany
+
+
+def test_anomalies_land_inside_the_window_under_test():
+    """Anomalies spread across the whole booking range mostly fall in quarters
+    no question asks about, leaving q003 and q004 with no signal to measure."""
+    profile = load_profile(PROFILE)
+    start, end = (d.isoformat() for d in profile.anomalies.concentrate_window)
+    data = generate(profile, seed=42)
+    booking_date = {r["BOOKING_ID"]: r["BOOKING_DATE"] for r in data["raw_bookings"]}
+
+    manifest = data["_anomalies"]
+    for key in ("bookings_without_billing", "bookings_without_revenue"):
+        placed = manifest[key]
+        assert placed, f"{key} placed nothing"
+        assert all(start <= booking_date[b] <= end for b in placed), \
+            f"{key} placed outside the window under test"
+
+
+def test_seeded_orphans_are_never_intercompany():
+    """A seeded orphan is a defect. An intercompany booking correctly carries no
+    revenue. Overlapping them would make q003 score a correct exclusion as a
+    missed defect, and the question would stop measuring what it claims to."""
+    data = generate(load_profile(PROFILE), seed=42)
+    manifest = data["_anomalies"]
+    assert not (set(manifest["bookings_without_revenue"])
+                & set(manifest["bookings_intercompany"]))

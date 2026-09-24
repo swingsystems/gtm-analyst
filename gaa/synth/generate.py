@@ -280,8 +280,30 @@ def generate(profile: DatasetProfile, seed: int) -> Dataset:
     bookings = _generate_bookings(profile, accounts, rng)
 
     booking_ids = sorted(booking["BOOKING_ID"] for booking in bookings)
-    unbilled = _pick_every_nth(booking_ids, profile.anomalies.bookings_without_billing, 0.0)
-    unrecognised = _pick_every_nth(booking_ids, profile.anomalies.bookings_without_revenue, 0.5)
+
+    # Anomalies are drawn from inside the window under test when one is declared.
+    # Spread across the full booking range they mostly fall in quarters no
+    # question asks about, so the reconciliation questions measure almost nothing.
+    window = profile.anomalies.concentrate_window
+    if window:
+        start, end = window[0].isoformat(), window[1].isoformat()
+        candidates = sorted(
+            b["BOOKING_ID"] for b in bookings if start <= b["BOOKING_DATE"] <= end
+        )
+    else:
+        candidates = booking_ids
+
+    # A seeded orphan must be a DEFECT, never a booking that correctly carries no
+    # revenue. Intercompany bookings already recognise nothing, so seeding one as
+    # an orphan too would make the defect indistinguishable from the exclusion and
+    # q003 would score a correct answer as a miss.
+    intercompany_ids = {b["BOOKING_ID"] for b in bookings if b["IS_INTERCOMPANY"] == "true"}
+    revenue_candidates = [b for b in candidates if b not in intercompany_ids]
+
+    unbilled = _pick_every_nth(candidates, profile.anomalies.bookings_without_billing, 0.0)
+    unrecognised = _pick_every_nth(
+        revenue_candidates, profile.anomalies.bookings_without_revenue, 0.5
+    )
 
     intercompany = sorted(b["BOOKING_ID"] for b in bookings if b["IS_INTERCOMPANY"] == "true")
 
