@@ -29,6 +29,26 @@ def private_key_der(settings: Settings) -> bytes:
     )
 
 
+def user_for_persona(persona: Persona, settings: Settings) -> str:
+    """The Snowflake user a persona connects as.
+
+    Each persona gets its own service user holding exactly ONE role. Without
+    that, the boundary is not real: a session opened as GAA_REP_INDIVIDUAL can
+    run USE ROLE GAA_FINANCE_GLOBAL and read everything, because Snowflake scopes
+    privilege to the session role but lets a session switch to any role its USER
+    holds. The schema grants were never the weak point; the user's role portfolio
+    was.
+
+    The mapping is by convention rather than configuration because the persona
+    spec is frozen, and because a Snowflake user account is a deployment detail
+    that has no business appearing in an evaluation spec.
+    """
+    prefix = settings.snowflake_service_user_prefix
+    if prefix and persona.service_user:
+        return f"{prefix}{persona.name}"
+    return settings.snowflake_user
+
+
 @contextmanager
 def session_for_persona(
     persona: Persona, settings: Settings | None = None
@@ -37,7 +57,7 @@ def session_for_persona(
     settings = settings or load_settings()
     conn = snowflake.connector.connect(
         account=settings.snowflake_account,
-        user=settings.snowflake_user,
+        user=user_for_persona(persona, settings),
         private_key=private_key_der(settings),
         role=persona.snowflake_role,
         warehouse=settings.snowflake_warehouse,

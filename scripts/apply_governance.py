@@ -26,6 +26,7 @@ ADMIN = Persona(
     snowflake_role="ACCOUNTADMIN",
     snowflake_schema="MARTS",
     description="governance DDL only",
+    service_user=False,
 )
 
 

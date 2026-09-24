@@ -19,6 +19,11 @@ class Persona(BaseModel):
     snowflake_role: str
     snowflake_schema: str
     description: str
+    # Personas in the evaluation spec connect as their own service user, which
+    # holds exactly one role. Operational identities constructed in code -- the
+    # governance applier, the dbt loader -- are not personas in that sense and
+    # connect as the operator. Defaulted so the frozen spec need not declare it.
+    service_user: bool = True
 
 
 class ExpectedResult(BaseModel):

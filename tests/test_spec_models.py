@@ -94,3 +94,13 @@ def test_question_rejects_unknown_fields():
             id="q", text="t", reference_sql="q.sql", grain="g", expected=[],
             tags=[], source="authored", targets="wrong_column", targetz="oops",
         )
+
+
+def test_spec_personas_default_to_their_own_service_user():
+    """Spec personas connect as a single-role service user; operational
+    identities built in code opt out explicitly."""
+    p = Persona(name="X", snowflake_role="R", snowflake_schema="S", description="d")
+    assert p.service_user is True
+    admin = Persona(name="ADMIN", snowflake_role="ACCOUNTADMIN", snowflake_schema="MARTS",
+                    description="d", service_user=False)
+    assert admin.service_user is False

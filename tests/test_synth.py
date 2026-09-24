@@ -158,3 +158,20 @@ def test_seeded_orphans_are_never_intercompany():
     manifest = data["_anomalies"]
     assert not (set(manifest["bookings_without_revenue"])
                 & set(manifest["bookings_intercompany"]))
+
+
+def test_a_reps_accounts_are_all_in_one_region():
+    """The rep persona must be a SUBSET of the regional one, or the frozen
+    monotonic_nesting invariant (rep <= EMEA <= global) is simply false.
+
+    Note this is about the rep's book of ACCOUNTS, not their territory history:
+    a rep legitimately appears in two territories across time, because every rep
+    is reassigned mid-quarter and that reassignment is the fan-out q011 exists
+    to catch. Their accounts still belong to a single region.
+    """
+    data = generate(load_profile(PROFILE), seed=42)
+    regions_per_rep: dict[str, set[str]] = {}
+    for account in data["raw_accounts"]:
+        regions_per_rep.setdefault(account["OWNER_REP_ID"], set()).add(account["REGION"])
+    spanning = {rep: regions for rep, regions in regions_per_rep.items() if len(regions) > 1}
+    assert not spanning, f"reps owning accounts across regions: {spanning}"

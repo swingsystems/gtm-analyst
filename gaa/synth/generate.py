@@ -13,7 +13,7 @@ import random
 from datetime import date, timedelta
 from decimal import Decimal
 
-from gaa.synth.profile import DatasetProfile
+from gaa.synth.profile import AccountsProfile, DatasetProfile
 
 CENTS = Decimal("0.01")
 
@@ -77,13 +77,30 @@ def _quarters(year: int) -> list[tuple[str, date, date]]:
     return bounds
 
 
+def _reps_by_region(shape: "AccountsProfile") -> dict[str, list[int]]:
+    """Reps are assigned to regions the same way territories are, so that an
+    account's owner always belongs to the account's region.
+
+    Without this, a rep's book of business spans regions while their territory
+    does not, and the rep persona stops being a subset of the regional one --
+    which contradicts the monotonic_nesting invariant and makes the persona
+    hierarchy incoherent.
+    """
+    mapping: dict[str, list[int]] = {region: [] for region in shape.regions}
+    for rep in range(1, shape.reps + 1):
+        mapping[shape.regions[(rep - 1) % len(shape.regions)]].append(rep)
+    return mapping
+
+
 def _generate_accounts(profile: DatasetProfile, rng: random.Random) -> list[Row]:
     accounts: list[Row] = []
     shape = profile.accounts
+    reps_for = _reps_by_region(shape)
     for index in range(1, shape.count + 1):
         region = shape.regions[rng.randrange(len(shape.regions))]
         segment = shape.segments[rng.randrange(len(shape.segments))]
-        rep = rng.randrange(1, shape.reps + 1)
+        candidates = reps_for[region]
+        rep = candidates[rng.randrange(len(candidates))]
         accounts.append(
             {
                 "ACCOUNT_ID": f"ACC{index:05d}",
@@ -100,7 +117,11 @@ def _generate_accounts(profile: DatasetProfile, rng: random.Random) -> list[Row]
     for offset, segment in enumerate(shape.segments):
         accounts[offset % len(accounts)]["SEGMENT"] = segment
     for offset, region in enumerate(shape.regions):
-        accounts[-(offset + 1)]["REGION"] = region
+        account = accounts[-(offset + 1)]
+        account["REGION"] = region
+        # Re-home the owner as well, or forcing a region would recreate exactly
+        # the cross-region ownership this function exists to prevent.
+        account["OWNER_REP_ID"] = f"REP{reps_for[region][0]:03d}"
     return accounts
 
 
@@ -225,7 +246,9 @@ def _generate_territories(profile: DatasetProfile, rng: random.Random) -> list[R
     for index in range(1, shape.reps + 1):
         territory_id = f"TER{index:03d}"
         successor = index % shape.reps + 1
-        region = shape.regions[rng.randrange(len(shape.regions))]
+        # Same rule _reps_by_region uses when choosing account owners. Both must
+        # agree or a rep ends up owning accounts outside their own territory.
+        region = shape.regions[(index - 1) % len(shape.regions)]
         rows.append(
             {
                 "TERRITORY_ID": territory_id,
