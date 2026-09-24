@@ -101,3 +101,42 @@ def _write_expected(path: Path, expected: list[dict]) -> None:
         raise ValueError(f"{path}: no expected block to replace")
     block = yaml.safe_dump({"expected": expected}, sort_keys=False, default_flow_style=False)
     path.write_text(f"{head}\n{block}")
+
+
+@cli.command("check-invariants")
+@click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_SPEC_ROOT)
+def check_invariants(root: Path) -> None:
+    """Run every question as every persona, then evaluate all invariants."""
+    from gaa.runner.invariants import check_invariant
+    from gaa.runner.reference import run_reference
+
+    spec = load_spec(root)
+    results, repeats = {}, {}
+    for question in spec.questions:
+        for persona in spec.personas.values():
+            key = (question.id, persona.name)
+            results[key] = run_reference(root, question, persona)
+            repeats[key] = run_reference(root, question, persona)
+
+    failures = 0
+
+    # Determinism is a property of the runs themselves, so it is checked here
+    # rather than from a single captured pass.
+    drifted = [k for k in results if results[k].rows != repeats[k].rows]
+    status = "PASS" if not drifted else "FAIL"
+    click.echo(f"[{status}] determinism: {len(results)} question/persona pairs run twice"
+               + (f", drifted: {drifted}" if drifted else ""))
+    failures += bool(drifted)
+
+    for inv in spec.invariants:
+        if inv.kind == "determinism":
+            continue
+        outcome = check_invariant(inv, results)
+        click.echo(f"[{'PASS' if outcome.passed else 'FAIL'}] {outcome.invariant_id}: "
+                   f"{outcome.detail}")
+        failures += not outcome.passed
+
+    if failures:
+        click.echo(f"{failures} invariant(s) failed", err=True)
+        sys.exit(1)
+    click.echo("all invariants hold")
