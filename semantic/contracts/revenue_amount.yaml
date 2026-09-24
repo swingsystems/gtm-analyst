@@ -1,0 +1,25 @@
+name: revenue_amount
+version: 1
+description: >-
+  Recognised revenue, in USD, for the fiscal quarter in which it was recognised,
+  not the quarter the underlying booking was signed. There is deliberately no
+  intercompany filter here: intercompany bookings recognise no revenue at all,
+  so a filter would remove nothing while implying to every reader that
+  intercompany revenue exists somewhere in this view. Use this metric for
+  earned performance; use bookings_amount for what was sold.
+owner: gtm-finance@example.com
+table: V_REVENUE
+grain: one row per revenue recognition entry
+measure:
+  column: AMOUNT
+  aggregation: sum
+dimensions:
+  - name: region
+    column: REGION
+    description: Sales region credited with the revenue, carried from the originating booking.
+  - name: license_type
+    column: LICENSE_TYPE
+    description: Commercial form of the contract the revenue was recognised against.
+default_filters: []
+null_policy: preserve
+period_column: FISCAL_QUARTER

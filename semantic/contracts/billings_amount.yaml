@@ -1,0 +1,22 @@
+name: billings_amount
+version: 1
+description: >-
+  Total invoiced value, in USD, for invoices dated inside the fiscal quarter.
+  Billings follow the invoicing schedule of a contract rather than its signature
+  date, so a multi-year booking can bill across several quarters and a quarter's
+  billings can exceed or trail its bookings without either number being wrong.
+  This is invoiced value, not cash collected: it says nothing about whether the
+  customer has paid.
+owner: gtm-finance@example.com
+table: V_BILLINGS
+grain: one row per invoice line
+measure:
+  column: AMOUNT
+  aggregation: sum
+dimensions:
+  - name: region
+    column: REGION
+    description: Sales region credited with the invoice, carried from the originating booking.
+default_filters: []
+null_policy: preserve
+period_column: FISCAL_QUARTER

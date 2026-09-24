@@ -1,0 +1,29 @@
+name: bookings_amount
+version: 1
+description: >-
+  Total contracted booking value, in USD, for bookings dated inside the fiscal
+  quarter. Intercompany bookings are excluded by default: a sale between two
+  entities of the same group is eliminated on consolidation, so including it
+  would overstate what the group sold to the outside world. Bookings are signed
+  value, not money received (billings_amount) and not earned value
+  (revenue_amount); the three will not agree in any single quarter and are not
+  meant to.
+owner: gtm-finance@example.com
+table: V_BOOKINGS
+grain: one row per booking
+measure:
+  column: AMOUNT
+  aggregation: sum
+dimensions:
+  - name: region
+    column: REGION
+    description: Sales region credited with the booking, as stamped on the booking record.
+  - name: license_type
+    column: LICENSE_TYPE
+    description: Commercial form of the contract, e.g. subscription versus perpetual.
+default_filters:
+  - column: IS_INTERCOMPANY
+    op: eq
+    value: "false"
+null_policy: preserve
+period_column: FISCAL_QUARTER

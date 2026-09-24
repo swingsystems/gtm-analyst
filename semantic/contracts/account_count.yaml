@@ -1,0 +1,29 @@
+name: account_count
+version: 1
+description: >-
+  Number of distinct accounts that booked in the fiscal quarter -- buying
+  accounts, not accounts on file. It is deliberately measured on V_BOOKINGS
+  rather than on V_ACCOUNT: V_ACCOUNT is a dimension view with no date or
+  fiscal-quarter column, so a count taken there is a snapshot of the account
+  list as it stands today and cannot be attributed to a period at all. The same
+  intercompany exclusion as bookings_amount applies, so an account whose only
+  activity was an intercompany sale is not counted as a customer. Counting is
+  distinct on ACCOUNT_ID, so the number is safe to slice but not to add across
+  slices: an account buying in two regions is one account overall and one in
+  each region.
+owner: gtm-finance@example.com
+table: V_BOOKINGS
+grain: one row per booking, counted distinct by account
+measure:
+  column: ACCOUNT_ID
+  aggregation: count_distinct
+dimensions:
+  - name: region
+    column: REGION
+    description: Sales region credited with the booking the account was counted through.
+default_filters:
+  - column: IS_INTERCOMPANY
+    op: eq
+    value: "false"
+null_policy: preserve
+period_column: FISCAL_QUARTER

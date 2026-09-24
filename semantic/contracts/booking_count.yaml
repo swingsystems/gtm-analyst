@@ -1,0 +1,27 @@
+name: booking_count
+version: 1
+description: >-
+  Number of bookings signed in the fiscal quarter: deal count, the denominator
+  behind average deal size when paired with bookings_amount. It carries the same
+  intercompany exclusion as bookings_amount on purpose, so that the count and
+  the value always describe the same population; a count over a different
+  population than its amount is how average deal size quietly becomes wrong.
+owner: gtm-finance@example.com
+table: V_BOOKINGS
+grain: one row per booking
+measure:
+  column: BOOKING_ID
+  aggregation: count
+dimensions:
+  - name: region
+    column: REGION
+    description: Sales region credited with the booking, as stamped on the booking record.
+  - name: license_type
+    column: LICENSE_TYPE
+    description: Commercial form of the contract, e.g. subscription versus perpetual.
+default_filters:
+  - column: IS_INTERCOMPANY
+    op: eq
+    value: "false"
+null_policy: preserve
+period_column: FISCAL_QUARTER
