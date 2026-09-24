@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the agent this architecture exists to govern, and measure whether constraining it to declared metrics makes it more correct than letting it write SQL.
+**Goal:** Build the agent this architecture exists to govern, and measure whether declarative metric contracts — with and without compiler-enforced joins — make it more correct than letting it write SQL.
 
-**Architecture:** Metric contracts are structured YAML — never SQL text — compiled into both the MCP tool surface and the queries it runs. The agent's only access to data is that surface, executing as the caller's persona. Every answer returns an answer card carrying its SQL, metric versions, lineage, policy context, and Snowflake query ID. The harness runs all twelve questions through both a metric-constrained agent and a free-SQL agent, across all three personas, and reports per-category failure rates.
+**Architecture:** Metric contracts are structured YAML — never SQL text — compiled into both the MCP tool surface and the queries it runs. The agent's only access to data is that surface, executing as the caller's persona. Every answer returns an answer card carrying its SQL, metric versions, lineage, policy context, and Snowflake query ID. The harness runs all twelve questions through three arms — free SQL, strict contracts with no join surface, and contracts whose joins carry compiler-mandatory predicates — across all three personas, and reports coverage, conditional accuracy and per-category rates under the schema pre-registered in `docs/adr/0003-three-arms-and-pre-registered-reporting.md`.
 
 **Tech Stack:** Python 3.11, pydantic v2, the MCP Python SDK, Claude Agent SDK, snowflake-connector-python (key-pair), pytest, DuckDB (tier-0 mirror).
 
@@ -290,7 +290,25 @@ default_filters:
 
 ---
 
-### Task 9: The free-SQL agent
+### Task 9: The free-SQL agent and the safe-join arm
+
+**Read `docs/adr/0003-three-arms-and-pre-registered-reporting.md` first.** It fixes the reporting
+schema and the q011 conditional before any number exists, and it explains why `TERRITORY_ID` must
+stay un-denormalised.
+
+This task builds TWO arms, because they are only meaningful against each other:
+
+- **free-sql** — arbitrary SELECT, no guardrails beyond the warehouse boundary
+- **safe-join-contract** — contracts may declare joins, but the compiler REFUSES to assemble SQL
+  unless every predicate the join declares as mandatory is present and parameter-bound. Omitting the
+  validity-window predicate on an effective-dated join must produce a compiler error, never a wrong
+  number.
+
+On q011 the three arms must diverge: free-sql may fan out, strict-contract returns `inexpressible`,
+safe-join passes with the mandatory predicate and errors without it. If all three behave the same
+on q011, the experiment has lost its discriminating case and that must be reported, not patched.
+
+#### Original task 9 content follows
 
 **Files:** Create `gaa/agent/freesql.py`. Test `tests/test_freesql_agent.py`.
 
@@ -320,7 +338,13 @@ default_filters:
 
 **Files:** Create `gaa/harness/__init__.py`, `gaa/harness/score.py`. Test `tests/test_score.py`.
 
-**Interfaces:** Produces `Score(question_id, persona, arm, correct, category, detail)`; `score_answer(card, question, persona) -> Score`.
+**Interfaces:** Produces `Outcome` (str enum: `correct`, `wrong`, `inexpressible`);
+`Score(question_id, persona, arm, outcome, category, refusal_kind, detail)`;
+`score_answer(card, question, persona, arm) -> Score`.
+
+`inexpressible` is a THIRD outcome, never folded into `wrong`. `refusal_kind` distinguishes an
+*appropriate* refusal (q007 ambiguity, q012 governance) from a *capability* refusal (cannot
+express) — the pre-registered schema forbids summing them.
 
 **Classification rules, each independently tested against synthetic cards:**
 
@@ -362,13 +386,16 @@ default_filters:
 
 **Interfaces:** Produces `gaa experiment [--arm both] [--out results/]` writing `results/summary.md` and `results/raw.json`.
 
-- [ ] **Step 1: Write the failing test** — the runner produces a score for every question × persona × arm (72 cells); the summary reports per-category counts for both arms; a missing cell fails rather than being silently omitted.
+- [ ] **Step 1: Write the failing test** — the runner produces a score for every question × persona × arm (**108 cells**: 12 × 3 × 3); a missing cell fails rather than being silently omitted; the summary emits every field the pre-registered schema requires — coverage, conditional accuracy, refusals split by kind, head-to-head on the subset all three arms can express, safety bonus, and per-category rates with explicit denominators. A summary missing any of those fails the test, because the reporting schema is the deliverable as much as the numbers are.
 
 - [ ] **Step 2: Run it, confirm failure.**
 
 - [ ] **Step 3: Implement.** Report per-category rates, not a single accuracy number.
 
-- [ ] **Step 4: Run the experiment for real.** Record the result **whatever it is.** If constraining the agent does not help, that is the finding and it gets published unchanged.
+- [ ] **Step 4: Run the experiment for real.** Record the result **whatever it is**, and resolve the q011 conditional committed in ADR 0003: if free-sql fell into `fanout_double_count`, the strict arm's refusal is a structural safety win; if free-sql answered q011 correctly, the refusal bought nothing and the framing shifts to a capability tradeoff with no demonstrated safety benefit. Publish whichever branch obtains, with equal prominence.
+
+**Do not publish a single aggregate accuracy number.** ADR 0003 explains why: it is the most likely
+route to a result that is technically correct and substantively misleading.
 
 - [ ] **Step 5: Commit** `feat(harness): the experiment, and its result`
 
