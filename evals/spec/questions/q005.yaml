@@ -6,9 +6,45 @@ source: authored
 tags: [revenue,recognition,timing]
 targets: wrong_join_grain
 expected:
-  - persona: FINANCE_GLOBAL
-    rows: []
-  - persona: SALES_DIR_EMEA
-    rows: []
-  - persona: REP_INDIVIDUAL
-    rows: []
+- persona: FINANCE_GLOBAL
+  rows:
+  - LICENSE_TYPE: perpetual
+    MEASURE: BOOKED
+    VALUE: '4747147.69'
+  - LICENSE_TYPE: perpetual
+    MEASURE: RECOGNISED
+    VALUE: '4040351.45'
+  - LICENSE_TYPE: subscription
+    MEASURE: BOOKED
+    VALUE: '6078923.49'
+  - LICENSE_TYPE: subscription
+    MEASURE: RECOGNISED
+    VALUE: '3396275.20'
+- persona: SALES_DIR_EMEA
+  rows:
+  - LICENSE_TYPE: perpetual
+    MEASURE: BOOKED
+    VALUE: '1592641.48'
+  - LICENSE_TYPE: perpetual
+    MEASURE: RECOGNISED
+    VALUE: '1210030.80'
+  - LICENSE_TYPE: subscription
+    MEASURE: BOOKED
+    VALUE: '2545202.01'
+  - LICENSE_TYPE: subscription
+    MEASURE: RECOGNISED
+    VALUE: '1342044.55'
+- persona: REP_INDIVIDUAL
+  rows:
+  - LICENSE_TYPE: perpetual
+    MEASURE: BOOKED
+    VALUE: '468622.42'
+  - LICENSE_TYPE: perpetual
+    MEASURE: RECOGNISED
+    VALUE: '468622.42'
+  - LICENSE_TYPE: subscription
+    MEASURE: BOOKED
+    VALUE: '845162.09'
+  - LICENSE_TYPE: subscription
+    MEASURE: RECOGNISED
+    VALUE: '367552.95'

@@ -167,8 +167,15 @@ def _generate_bookings(
 
     # Force a booking onto each declared quarter boundary so period-edge questions
     # have something to catch. Done before revenue so schedules follow the new date.
+    # Place each boundary booking on an account the MOST restricted persona can
+    # see. Landing them anywhere else leaves the restricted personas with an
+    # empty expected result, so two thirds of the question's matrix would assert
+    # nothing while still looking populated.
+    narrowest_owner = min(b["OWNER_REP_ID"] for b in bookings)
+    visible_to_all = [b for b in bookings if b["OWNER_REP_ID"] == narrowest_owner]
     for offset, boundary in enumerate(profile.anomalies.quarter_boundary_dates):
-        bookings[offset]["BOOKING_DATE"] = boundary.isoformat()
+        target = visible_to_all[offset % len(visible_to_all)] if visible_to_all else bookings[offset]
+        target["BOOKING_DATE"] = boundary.isoformat()
     return bookings
 
 

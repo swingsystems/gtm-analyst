@@ -175,3 +175,17 @@ def test_a_reps_accounts_are_all_in_one_region():
         regions_per_rep.setdefault(account["OWNER_REP_ID"], set()).add(account["REGION"])
     spanning = {rep: regions for rep, regions in regions_per_rep.items() if len(regions) > 1}
     assert not spanning, f"reps owning accounts across regions: {spanning}"
+
+
+def test_boundary_bookings_are_visible_to_the_narrowest_persona():
+    """A boundary booking on an account the restricted personas cannot see
+    leaves their expected result empty, so the question asserts nothing for
+    them while still appearing populated in the spec."""
+    profile = load_profile(PROFILE)
+    data = generate(profile, seed=42)
+    narrowest = min(b["OWNER_REP_ID"] for b in data["raw_bookings"])
+    for boundary in profile.anomalies.quarter_boundary_dates:
+        on_date = [b for b in data["raw_bookings"]
+                   if b["BOOKING_DATE"] == boundary.isoformat()]
+        assert any(b["OWNER_REP_ID"] == narrowest for b in on_date), \
+            f"no booking on {boundary} is visible to {narrowest}"

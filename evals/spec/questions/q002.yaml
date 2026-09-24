@@ -6,9 +6,19 @@ source: authored
 tags: [revenue,recognition]
 targets: wrong_column
 expected:
-  - persona: FINANCE_GLOBAL
-    rows: []
-  - persona: SALES_DIR_EMEA
-    rows: []
-  - persona: REP_INDIVIDUAL
-    rows: []
+- persona: FINANCE_GLOBAL
+  rows:
+  - REGION: AMER
+    VALUE: '1605325.93'
+  - REGION: APAC
+    VALUE: '3279225.37'
+  - REGION: EMEA
+    VALUE: '2552075.35'
+- persona: SALES_DIR_EMEA
+  rows:
+  - REGION: EMEA
+    VALUE: '2552075.35'
+- persona: REP_INDIVIDUAL
+  rows:
+  - REGION: EMEA
+    VALUE: '836175.37'

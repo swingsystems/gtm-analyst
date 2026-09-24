@@ -6,9 +6,12 @@ source: authored
 tags: [revenue,recognition,ratable]
 targets: wrong_date_boundary
 expected:
-  - persona: FINANCE_GLOBAL
-    rows: []
-  - persona: SALES_DIR_EMEA
-    rows: []
-  - persona: REP_INDIVIDUAL
-    rows: []
+- persona: FINANCE_GLOBAL
+  rows:
+  - VALUE: '2728409.19'
+- persona: SALES_DIR_EMEA
+  rows:
+  - VALUE: '1032569.31'
+- persona: REP_INDIVIDUAL
+  rows:
+  - VALUE: '237829.32'

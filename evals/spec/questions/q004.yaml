@@ -6,9 +6,27 @@ source: authored
 tags: [reconciliation,orphans]
 targets: orphans_dropped
 expected:
-  - persona: FINANCE_GLOBAL
-    rows: []
-  - persona: SALES_DIR_EMEA
-    rows: []
-  - persona: REP_INDIVIDUAL
-    rows: []
+- persona: FINANCE_GLOBAL
+  rows:
+  - BOOKING_ID: BK000005
+    VALUE: '212314.19'
+  - BOOKING_ID: BK000049
+    VALUE: '156985.75'
+  - BOOKING_ID: BK000106
+    VALUE: '32275.81'
+  - BOOKING_ID: BK000139
+    VALUE: '116952.58'
+  - BOOKING_ID: BK000185
+    VALUE: '135760.38'
+  - BOOKING_ID: BK000229
+    VALUE: '30571.48'
+- persona: SALES_DIR_EMEA
+  rows:
+  - BOOKING_ID: BK000106
+    VALUE: '32275.81'
+  - BOOKING_ID: BK000185
+    VALUE: '135760.38'
+- persona: REP_INDIVIDUAL
+  rows:
+  - BOOKING_ID: BK000185
+    VALUE: '135760.38'

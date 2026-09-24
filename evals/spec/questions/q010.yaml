@@ -6,9 +6,33 @@ source: authored
 tags: [revenue,nulls]
 targets: null_segment_dropped
 expected:
-  - persona: FINANCE_GLOBAL
-    rows: []
-  - persona: SALES_DIR_EMEA
-    rows: []
-  - persona: REP_INDIVIDUAL
-    rows: []
+- persona: FINANCE_GLOBAL
+  rows:
+  - SEGMENT: (none)
+    VALUE: '1381545.78'
+  - SEGMENT: Enterprise
+    VALUE: '1771584.48'
+  - SEGMENT: Mid-Market
+    VALUE: '2029928.71'
+  - SEGMENT: SMB
+    VALUE: '2253567.68'
+- persona: SALES_DIR_EMEA
+  rows:
+  - SEGMENT: (none)
+    VALUE: '441223.23'
+  - SEGMENT: Enterprise
+    VALUE: '735336.94'
+  - SEGMENT: Mid-Market
+    VALUE: '816139.68'
+  - SEGMENT: SMB
+    VALUE: '559375.50'
+- persona: REP_INDIVIDUAL
+  rows:
+  - SEGMENT: (none)
+    VALUE: '149602.44'
+  - SEGMENT: Enterprise
+    VALUE: '266710.55'
+  - SEGMENT: Mid-Market
+    VALUE: '56472.84'
+  - SEGMENT: SMB
+    VALUE: '363389.54'

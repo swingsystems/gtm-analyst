@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import click
+import yaml
 
 from gaa.spec.loader import SpecError, load_spec
 
@@ -58,3 +59,45 @@ def synth(profile: Path, out: Path) -> None:
         click.echo(f"{path}: {len(rows)} rows")
     (out / "_anomalies.json").write_text(json.dumps(data["_anomalies"], indent=2, sort_keys=True))
     click.echo(f"{out / '_anomalies.json'}: anomaly manifest")
+
+
+@cli.command("capture-expected")
+@click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_SPEC_ROOT)
+@click.option("--dry-run", is_flag=True, help="show results without writing the spec")
+def capture_expected(root: Path, dry_run: bool) -> None:
+    """Run every question as every persona and write the results into the spec.
+
+    Fills the `expected` blocks ONLY. Question text and reference SQL are frozen
+    at the spec commit; this command must never modify them.
+    """
+    from gaa.runner.reference import run_reference
+
+    spec = load_spec(root)
+    for question in spec.questions:
+        expected = []
+        for persona in spec.personas.values():
+            result = run_reference(root, question, persona)
+            expected.append({"persona": persona.name, "rows": result.rows})
+            click.echo(f"{question.id:6s} {persona.name:<15} {len(result.rows):>3} rows  "
+                       f"[{result.query_id}]")
+        if dry_run:
+            continue
+        _write_expected(root / "questions" / f"{question.id}.yaml", expected)
+    if dry_run:
+        click.echo("\ndry run: spec not written")
+
+
+def _write_expected(path: Path, expected: list[dict]) -> None:
+    """Replace ONLY the expected block, leaving every other byte untouched.
+
+    A full YAML round-trip would rewrite the whole file -- restyling quotes on
+    fields that are frozen at the spec commit. The values would be identical and
+    the diff would still show them as changed, which undermines the one claim
+    this command makes: that it fills expected and nothing else.
+    """
+    original = path.read_text()
+    head, marker, _ = original.partition("\nexpected:")
+    if not marker:
+        raise ValueError(f"{path}: no expected block to replace")
+    block = yaml.safe_dump({"expected": expected}, sort_keys=False, default_flow_style=False)
+    path.write_text(f"{head}\n{block}")
