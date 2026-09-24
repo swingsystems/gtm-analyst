@@ -14,3 +14,7 @@ test:
 
 verify-integrity:
 	uv run pytest tests/test_spec_predates_models.py -v
+
+.PHONY: governance
+governance:
+	uv run python scripts/apply_governance.py
