@@ -5,6 +5,7 @@ schema, or user argument. That is the structural difference between a boundary
 enforced by the warehouse and one enforced by a prompt: an agent cannot ask for
 privileges it was not given, because there is no parameter through which to ask.
 """
+import json
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +30,11 @@ class ToolError(Exception):
 class ToolSurface:
     """Read-only tools, scoped to one persona for the life of the object."""
 
-    TOOLS = ("list_metrics", "describe_metric", "query_metric", "run_sql")
+    TOOLS = ("list_metrics", "describe_metric", "query_metric", "run_sql", "explain_lineage")
+
+    LINEAGE_PATH = (
+        Path(__file__).parent.parent.parent / "warehouse" / "governance" / "lineage.json"
+    )
 
     def __init__(self, persona: Persona, contracts_root: Path, audit_path: Path | None = None):
         self._persona = persona
@@ -56,7 +61,13 @@ class ToolSurface:
     # ---------------------------------------------------------------- tools
 
     def list_metrics(self) -> list[dict[str, Any]]:
-        """Every metric this deployment declares."""
+        """List every metric available, with its grain and its dimensions.
+
+        Start here. Each entry names a metric, says what one row of the
+        underlying data represents, and lists the dimensions it can be sliced
+        by. Use describe_metric for the full definition of one of them,
+        including its default filters and how it treats nulls.
+        """
         with self._audit.around(self._entry("list_metrics")):
             return [
                 {
@@ -69,7 +80,14 @@ class ToolSurface:
             ]
 
     def describe_metric(self, name: str) -> dict[str, Any]:
-        """One metric's full contract: grain, dimensions, defaults, null policy."""
+        """Return one metric's full contract.
+
+        Reports the measure and its aggregation, the grain, every dimension it
+        may be sliced by, the filters applied by default whether or not you ask
+        for them, the period column, and whether null dimension values are kept
+        as their own group or excluded. Read this before calling query_metric:
+        the default filters in particular change what the number means.
+        """
         with self._audit.around(self._entry("describe_metric")) as entry:
             contract = self._contracts.metrics.get(name)
             if contract is None:
@@ -106,10 +124,18 @@ class ToolSurface:
         filters: list[dict] | None = None,
         period: str | None = None,
     ) -> dict[str, Any]:
-        """Execute one metric as this persona.
+        """Run one metric and return its rows.
 
-        Compilation happens before any connection is opened, so an undeclared
-        dimension is refused without ever reaching Snowflake.
+        Slice by any dimension the contract declares, filter on any column it
+        declares, and scope to a period such as "2026-Q3". The metric's default
+        filters always apply in addition to yours.
+
+        Anything the contract does not declare is refused, and refused before a
+        connection is opened rather than as a database error. The refusal names
+        what was available, so a rejected call tells you what to ask for instead.
+
+        Returns the rows, the exact SQL executed, the metric versions used, the
+        objects read, and the Snowflake query id for that execution.
         """
         with self._audit.around(self._entry("query_metric")) as entry:
             request = QueryRequest(
@@ -190,5 +216,40 @@ class ToolSurface:
                 "metrics_used": [],
                 "lineage": [],
                 "query_id": entry.query_id,
+                "context": self._context(),
+            }
+
+    def explain_lineage(self, name: str) -> dict[str, Any]:
+        """Report which objects a metric reads from, for THIS persona.
+
+        Lineage is build-time metadata recorded by scripts/apply_governance.py,
+        not runtime introspection. A SECURE view hides its own definition from
+        anyone who is not its owner, so the agent cannot discover what it reads
+        from -- which is precisely the property that stops it introspecting its
+        way around the boundary. It is told because we recorded it.
+
+        Each persona is told about its OWN view. The controller and the rep read
+        different objects for the same metric, and lineage that reported a
+        canonical view would be lying by omission.
+        """
+        with self._audit.around(self._entry("explain_lineage")) as entry:
+            contract = self._contracts.metrics.get(name)
+            if contract is None:
+                raise ToolError(
+                    f"unknown metric {name!r}; available: {sorted(self._contracts.metrics)}"
+                )
+            entry.metrics_used = [name]
+
+            qualified = f"GAA.{self._persona.snowflake_schema}.{contract.table}".upper()
+            manifest = (
+                json.loads(self.LINEAGE_PATH.read_text())
+                if self.LINEAGE_PATH.exists()
+                else {}
+            )
+            return {
+                "metric": name,
+                "version": contract.version,
+                "view": qualified,
+                "sources": manifest.get(qualified, []),
                 "context": self._context(),
             }

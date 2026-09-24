@@ -43,7 +43,7 @@ def test_the_surface_exposes_exactly_the_declared_tools():
     """Pinned deliberately. Widening the agent's reach should be an explicit
     edit here, not a side effect of adding a method."""
     assert set(ToolSurface.TOOLS) == {
-        "list_metrics", "describe_metric", "query_metric", "run_sql",
+        "list_metrics", "describe_metric", "query_metric", "run_sql", "explain_lineage",
     }
 
 
