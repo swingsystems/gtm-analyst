@@ -11,6 +11,7 @@ dependencies = [
     "cryptography>=42.0",
     "click>=8.1",
     "mcp>=1.2",
+    "anthropic>=0.40",
 ]
 
 [project.optional-dependencies]
