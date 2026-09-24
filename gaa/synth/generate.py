@@ -265,7 +265,12 @@ def _generate_territories(profile: DatasetProfile, rng: random.Random) -> list[R
                 "REP_ID": f"REP{index:03d}",
                 "REGION": region,
                 "VALID_FROM": start.isoformat(),
-                "VALID_TO": (split - timedelta(days=1)).isoformat(),
+                # HALF-OPEN: VALID_TO is the first instant NOT covered, so the
+                # two periods abut exactly with no gap and no overlap. The
+                # reference SQL reads them as [VALID_FROM, VALID_TO), and an
+                # inclusive end date here would silently drop every booking
+                # landing on a boundary -- which it did, losing 180,848.13.
+                "VALID_TO": split.isoformat(),
             }
         )
         rows.append(
@@ -274,7 +279,7 @@ def _generate_territories(profile: DatasetProfile, rng: random.Random) -> list[R
                 "REP_ID": f"REP{successor:03d}",
                 "REGION": region,
                 "VALID_FROM": split.isoformat(),
-                "VALID_TO": end.isoformat(),
+                "VALID_TO": (end + timedelta(days=1)).isoformat(),
             }
         )
     return rows

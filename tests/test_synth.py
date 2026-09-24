@@ -189,3 +189,40 @@ def test_boundary_bookings_are_visible_to_the_narrowest_persona():
                    if b["BOOKING_DATE"] == boundary.isoformat()]
         assert any(b["OWNER_REP_ID"] == narrowest for b in on_date), \
             f"no booking on {boundary} is visible to {narrowest}"
+
+
+def test_territory_windows_are_half_open_and_cover_every_booking():
+    """VALID_TO is the first instant NOT covered, so [VALID_FROM, VALID_TO)
+    periods abut exactly. An inclusive end date leaves a one-day hole at every
+    handover, and a booking landing there vanishes from any join that reads the
+    window correctly -- which is a wrong_date_boundary failure hiding inside the
+    question that tests for fan-out.
+    """
+    from datetime import date
+    from itertools import pairwise
+
+    data = generate(load_profile(PROFILE), seed=42)
+    per_rep: dict[str, list] = {}
+    for row in data["raw_territory_assignments"]:
+        per_rep.setdefault(row["REP_ID"], []).append(row)
+
+    for rep, rows in per_rep.items():
+        windows = sorted((r["VALID_FROM"], r["VALID_TO"]) for r in rows)
+        for (_, earlier_to), (later_from, _) in pairwise(windows):
+            assert earlier_to <= later_from, f"{rep}: windows overlap"
+
+    # Every Q3 booking must fall inside exactly one window for its own rep.
+    territory_rows = data["raw_territory_assignments"]
+    for booking in data["raw_bookings"]:
+        booked = date.fromisoformat(booking["BOOKING_DATE"])
+        if not (date(2026, 7, 1) <= booked <= date(2026, 9, 30)):
+            continue
+        matches = [
+            t for t in territory_rows
+            if t["REP_ID"] == booking["OWNER_REP_ID"]
+            and date.fromisoformat(t["VALID_FROM"]) <= booked < date.fromisoformat(t["VALID_TO"])
+        ]
+        assert len(matches) == 1, (
+            f"{booking['BOOKING_ID']} on {booking['BOOKING_DATE']} matched "
+            f"{len(matches)} territory rows for {booking['OWNER_REP_ID']}"
+        )
