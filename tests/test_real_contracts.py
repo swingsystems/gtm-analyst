@@ -10,11 +10,13 @@ CONTRACTS = Path(__file__).parent.parent / "semantic" / "contracts"
 # Columns that actually exist on each persona view.
 VIEW_COLUMNS = {
     "V_BOOKINGS": {"BOOKING_ID", "ACCOUNT_ID", "BOOKING_DATE", "FISCAL_QUARTER", "REGION",
-                   "OWNER_REP_ID", "AMOUNT", "LICENSE_TYPE", "TERM_MONTHS", "IS_INTERCOMPANY"},
+                   "OWNER_REP_ID", "AMOUNT", "LICENSE_TYPE", "TERM_MONTHS", "IS_INTERCOMPANY",
+                   "SEGMENT", "ACCOUNT_NAME"},
     "V_BILLINGS": {"BILLING_ID", "BOOKING_ID", "ACCOUNT_ID", "INVOICE_DATE", "FISCAL_QUARTER",
                    "REGION", "OWNER_REP_ID", "AMOUNT"},
     "V_REVENUE": {"REVENUE_ID", "BOOKING_ID", "ACCOUNT_ID", "RECOGNITION_DATE", "FISCAL_QUARTER",
-                  "REGION", "OWNER_REP_ID", "LICENSE_TYPE", "AMOUNT"},
+                  "REGION", "OWNER_REP_ID", "LICENSE_TYPE", "AMOUNT",
+                  "SEGMENT", "ACCOUNT_NAME"},
     "V_ACCOUNT": {"ACCOUNT_ID", "ACCOUNT_NAME", "REGION", "SEGMENT", "OWNER_REP_ID"},
 }
 
@@ -89,3 +91,28 @@ def test_amount_metrics_sum_a_money_column(contracts):
         contract = contracts.metrics[key]
         assert contract.measure.aggregation.value == "sum"
         assert contract.measure.column == "AMOUNT"
+
+
+def test_the_declared_columns_match_the_live_views(contracts):
+    """The map above is hand-maintained, so it drifts the moment a column is
+    denormalised. This checks it against Snowflake itself when credentials are
+    available, so the cheap test cannot quietly certify a stale map."""
+    import os
+
+    if not os.environ.get("SNOWFLAKE_ACCOUNT"):
+        pytest.skip("no Snowflake credentials")
+
+    from gaa.connection import session_for_persona
+    from gaa.spec.loader import load_spec
+
+    spec = load_spec(Path(__file__).parent.parent / "evals" / "spec")
+    with session_for_persona(spec.personas["FINANCE_GLOBAL"]) as conn:
+        cursor = conn.cursor()
+        for view, declared in VIEW_COLUMNS.items():
+            cursor.execute(f"SELECT * FROM {view} LIMIT 0")
+            actual = {c[0] for c in cursor.description}
+            assert declared == actual, (
+                f"{view}: the hand-maintained map has drifted from the warehouse.\n"
+                f"  only in map:  {sorted(declared - actual)}\n"
+                f"  only in view: {sorted(actual - declared)}"
+            )

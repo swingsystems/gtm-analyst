@@ -4,17 +4,19 @@ Everything upstream validates identifiers. Values are deliberately NOT
 validated, because the defence is parameter binding rather than sanitising --
 so these tests exist to prove the binding actually happens.
 """
+from pathlib import Path
+
 import pytest
 
 from gaa.semantic.compile import CompileError, QueryRequest, compile_query
 from gaa.semantic.loader import load_contracts
-from pathlib import Path
 
 CONTRACTS = load_contracts(Path(__file__).parent.parent / "semantic" / "contracts")
 
 
 def _req(**kw):
-    base = dict(metric="bookings_amount@1", dimensions=["region"], filters=[], period="2026-Q3")
+    base = {"metric": "bookings_amount@1", "dimensions": ["region"],
+            "filters": [], "period": "2026-Q3"}
     base.update(kw)
     return QueryRequest(**base)
 

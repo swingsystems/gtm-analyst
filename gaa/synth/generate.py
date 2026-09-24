@@ -156,7 +156,6 @@ def _generate_bookings(
                     "REGION": account["REGION"],
                     "SEGMENT": account["SEGMENT"],
                     "OWNER_REP_ID": account["OWNER_REP_ID"],
-                    "SEGMENT": account["SEGMENT"],
                     "ACCOUNT_NAME": account["ACCOUNT_NAME"],
                     "IS_INTERCOMPANY": "false",
                 }
