@@ -63,9 +63,18 @@ def test_anomaly_manifest_matches_the_csv_gaps_exactly():
     recognised = {row["BOOKING_ID"] for row in read_csv("raw_revenue")}
 
     assert set(manifest["bookings_without_billing"]) == booked - billed
-    assert set(manifest["bookings_without_revenue"]) == booked - recognised
     assert booked - billed, "no unbilled bookings were planted"
     assert booked - recognised, "no unrecognised bookings were planted"
+
+    # A booking can lack revenue for two disjoint reasons: it was seeded as a
+    # defect, or it is intercompany and eliminates on consolidation. The answer
+    # to "which bookings have no revenue" legitimately contains both, so the
+    # manifest has to account for the union exactly -- otherwise a real orphan
+    # could hide inside the intercompany set unnoticed.
+    seeded = set(manifest["bookings_without_revenue"])
+    intercompany = set(manifest["bookings_intercompany"])
+    assert not (seeded & intercompany), "the two reasons must stay disjoint"
+    assert seeded | intercompany == booked - recognised
 
 
 def test_billing_amounts_match_their_booking():

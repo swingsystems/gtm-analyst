@@ -41,7 +41,11 @@ def test_seeded_orphans_exist_and_are_recorded():
 
     manifest = data["_anomalies"]
     assert set(manifest["bookings_without_billing"]) == unbilled
-    assert set(manifest["bookings_without_revenue"]) == unrecognised
+    # Two disjoint reasons a booking has no revenue: seeded defect, and
+    # intercompany elimination. The manifest must account for both exactly.
+    assert set(manifest["bookings_without_revenue"]) <= unrecognised
+    assert (set(manifest["bookings_without_revenue"])
+            | set(manifest["bookings_intercompany"])) == unrecognised
 
 
 def test_perpetual_recognises_once_subscription_recognises_monthly():
@@ -115,3 +119,16 @@ def test_revenue_carries_account_and_region_for_persona_filtering():
         assert row["ACCOUNT_ID"]
         assert row["REGION"] in {"EMEA", "AMER", "APAC"}
         assert row["OWNER_REP_ID"]
+
+
+def test_intercompany_bookings_recognise_no_revenue():
+    """Intercompany sales eliminate on consolidation, so they never become
+    external revenue. Without this, q005 compares ex-intercompany bookings
+    against all-in revenue and the two can never tie."""
+    data = generate(load_profile(PROFILE), seed=42)
+    intercompany = {r["BOOKING_ID"] for r in data["raw_bookings"]
+                    if r["IS_INTERCOMPANY"] == "true"}
+    with_revenue = {r["BOOKING_ID"] for r in data["raw_revenue"]}
+    assert intercompany, "profile must generate some intercompany bookings"
+    assert not (intercompany & with_revenue)
+    assert set(data["_anomalies"]["bookings_intercompany"]) == intercompany

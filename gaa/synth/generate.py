@@ -181,10 +181,17 @@ def _generate_revenue(bookings: list[Row], unrecognised: set[str]) -> list[Row]:
 
     Cents are split evenly and the final period absorbs the remainder, so the
     schedule always sums back to the booking amount exactly.
+
+    Intercompany bookings recognise NOTHING. A sale from one entity of a group to
+    another is eliminated on consolidation, so it never becomes external revenue.
+    Without this, recognised revenue would include intercompany while reported
+    bookings exclude it, and the two could never be reconciled.
     """
     revenue: list[Row] = []
     for booking in bookings:
         if booking["BOOKING_ID"] in unrecognised:
+            continue
+        if booking["IS_INTERCOMPANY"] == "true":
             continue
         booking_date = date.fromisoformat(booking["BOOKING_DATE"])
         total_cents = int((Decimal(booking["AMOUNT"]) * 100).to_integral_value())
@@ -276,6 +283,8 @@ def generate(profile: DatasetProfile, seed: int) -> Dataset:
     unbilled = _pick_every_nth(booking_ids, profile.anomalies.bookings_without_billing, 0.0)
     unrecognised = _pick_every_nth(booking_ids, profile.anomalies.bookings_without_revenue, 0.5)
 
+    intercompany = sorted(b["BOOKING_ID"] for b in bookings if b["IS_INTERCOMPANY"] == "true")
+
     billings = _generate_billings(profile, bookings, set(unbilled), rng)
     revenue = _generate_revenue(bookings, set(unrecognised))
     territories = _generate_territories(profile, rng)
@@ -291,5 +300,10 @@ def generate(profile: DatasetProfile, seed: int) -> Dataset:
         "_anomalies": {
             "bookings_without_billing": unbilled,
             "bookings_without_revenue": unrecognised,
+            # Intercompany bookings also carry no revenue, by consolidation rather
+            # than by defect. Recorded separately so the expected answer to "which
+            # bookings have no revenue" is explicit about containing both, and the
+            # seeded-orphan signal is not silently conflated with correct exclusion.
+            "bookings_intercompany": intercompany,
         },
     }

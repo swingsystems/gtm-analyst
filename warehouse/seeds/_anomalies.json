@@ -1,4 +1,14 @@
 {
+  "bookings_intercompany": [
+    "BK000037",
+    "BK000074",
+    "BK000111",
+    "BK000148",
+    "BK000185",
+    "BK000222",
+    "BK000259",
+    "BK000296"
+  ],
   "bookings_without_billing": [
     "BK000001",
     "BK000052",
