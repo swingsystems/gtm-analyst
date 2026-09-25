@@ -189,8 +189,8 @@ agent ──► tool surface ──► persona service user ──► GAA.<PERSO
    asserts that ordering in this repo.
 
 Also worth reading: the [threat model](docs/threat-model.md), which lists seven
-accepted risks including a hardcoded persona filter and an unauthenticated MCP
-server; and the [90-day rollout plan](docs/rollout-plan.md).
+accepted risks, what has since been closed, and what has not; and the
+[90-day rollout plan](docs/rollout-plan.md).
 
 ## Status
 

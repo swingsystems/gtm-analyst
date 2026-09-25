@@ -92,9 +92,21 @@ local log, and shared with another project.
 
 Listed because omitting them would make the table above a claim of completeness.
 
-**1. `REP001` is hardcoded in the persona views.** A real deployment maps
-`CURRENT_USER()` to a rep. Acceptable for a single-operator reference deployment;
-unacceptable in production, where every rep would see one rep's book.
+**1. ~~`REP001` is hardcoded in the persona views.~~ CLOSED.** The rep is now
+resolved from `CURRENT_USER()` through `GAA.IDENTITY.MAP_USER_TO_REP`, a table
+in a schema no persona role has any grant on. The secure view reads it with its
+owner's rights; the caller cannot, so a rep cannot enumerate other reps.
+
+It fails **closed**: an unmapped session makes the scalar subquery return NULL,
+`OWNER_REP_ID = NULL` is UNKNOWN, and UNKNOWN does not pass a WHERE clause. That
+is the opposite of the usual direction, where a mapping miss drops the filter
+and returns the unfiltered table. Asserted by deleting the mapping row and
+confirming the rep sees zero rows
+(`test_an_unmapped_user_sees_nothing_rather_than_everything`).
+
+**Residual.** The map is populated by the deploy script for the reference
+deployment. A real one feeds it from the HR or CRM system of record, and a stale
+row there still grants the wrong book.
 
 **2. The free-SQL and contract arms share one tool surface.** Nothing prevents a
 contract-constrained agent from calling `run_sql`; the arms are separated by

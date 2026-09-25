@@ -26,3 +26,13 @@ CREATE SCHEMA IF NOT EXISTS GAA.MARTS;
 CREATE SCHEMA IF NOT EXISTS GAA.FINANCE;
 CREATE SCHEMA IF NOT EXISTS GAA.EMEA;
 CREATE SCHEMA IF NOT EXISTS GAA.REP;
+
+-- Identity lives outside MARTS so dbt never owns or rebuilds it, and outside
+-- the persona schemas so no persona can read it. Which rep a session IS is not
+-- analytics data; it is part of the boundary.
+CREATE SCHEMA IF NOT EXISTS GAA.IDENTITY;
+CREATE TABLE IF NOT EXISTS GAA.IDENTITY.MAP_USER_TO_REP (
+    SNOWFLAKE_USER VARCHAR NOT NULL,
+    REP_ID         VARCHAR NOT NULL,
+    CONSTRAINT PK_MAP_USER_TO_REP PRIMARY KEY (SNOWFLAKE_USER)
+);
