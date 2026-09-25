@@ -60,9 +60,30 @@ def _grants(cursor, statement: str) -> list[list[str]]:
     return sorted(out)
 
 
+def _diff(baseline: dict, live: dict) -> tuple[list[str], list[str]]:
+    """What the account has that the baseline does not, and vice versa.
+
+    Both directions matter and they mean different things. An ADDED grant is
+    the escalation case -- somebody widened access. A REMOVED grant is the
+    breakage case, and it is the one that gets ignored until an agent starts
+    refusing questions it answered last week.
+    """
+    added, removed = [], []
+    for principal in sorted(set(baseline) | set(live)):
+        was = {json.dumps(g) for g in baseline.get(principal, [])}
+        now = {json.dumps(g) for g in live.get(principal, [])}
+        added += [f"+ {principal}  {g}" for g in sorted(now - was)]
+        removed += [f"- {principal}  {g}" for g in sorted(was - now)]
+    return added, removed
+
+
 @click.command()
-@click.option("--out", type=click.Path(path_type=Path), required=True)
-def main(out: Path) -> None:
+@click.option("--out", type=click.Path(path_type=Path),
+              help="write the live snapshot here")
+@click.option("--baseline", type=click.Path(path_type=Path),
+              help="compare the live account against this committed snapshot "
+                   "and exit non-zero on any difference")
+def main(out: Path | None, baseline: Path | None) -> None:
     settings = load_settings()
     prefix = settings.snowflake_service_user_prefix or "GAA_SVC_"
     snapshot: dict[str, object] = {}
@@ -85,14 +106,38 @@ def main(out: Path) -> None:
             _rows(cursor, f"SHOW GRANTS TO USER {settings.snowflake_user}")
         )
 
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
     total = sum(len(v) for v in snapshot.values())  # type: ignore[arg-type]
-    click.echo(f"{total} grants across {len(snapshot)} principals -> {out}", err=True)
 
-    # A snapshot of nothing would make convergence trivially pass.
+    # A snapshot of nothing would make both convergence and drift trivially pass.
     if total == 0:
-        click.echo("refusing to write an empty snapshot; is governance applied?", err=True)
+        click.echo("refusing to use an empty snapshot; is governance applied?", err=True)
+        sys.exit(1)
+
+    if out:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n")
+        click.echo(f"{total} grants across {len(snapshot)} principals -> {out}", err=True)
+
+    if baseline:
+        if not baseline.exists():
+            click.echo(f"no baseline at {baseline}; write one with --out first", err=True)
+            sys.exit(1)
+        added, removed = _diff(json.loads(baseline.read_text()), snapshot)
+        if not added and not removed:
+            click.echo(f"no drift: {total} grants match {baseline}")
+            return
+        click.echo("PRIVILEGE DRIFT", err=True)
+        for line in added + removed:
+            click.echo(f"  {line}", err=True)
+        click.echo(
+            "\nA persona role granted to a human user re-opens role escalation. "
+            "Review, then either revert the grant or re-baseline deliberately.",
+            err=True,
+        )
+        sys.exit(1)
+
+    if not out and not baseline:
+        click.echo("nothing to do: pass --out, --baseline, or both", err=True)
         sys.exit(1)
 
 

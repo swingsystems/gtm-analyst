@@ -1,5 +1,6 @@
 .PHONY: setup spec-validate lint test verify-integrity demo \
-        deploy teardown verify-convergence governance seed build viewer
+        deploy teardown verify-convergence governance seed build viewer \
+        check-drift baseline
 
 setup:
 	uv sync --all-extras
@@ -48,6 +49,15 @@ teardown:  ## Drop the database, the service users, and the four roles.
 # Grants are additive: narrowing them in the SQL does not narrow them on the
 # account. A second run that changes the privilege set means the deployment
 # accumulates rather than converges, and is a different system every time.
+# Drift is different from convergence. Convergence asks "does re-running the
+# deploy change anything". Drift asks "has anyone changed the account since" --
+# which is the case that re-opens role escalation, and the one no deploy sees.
+check-drift:
+	uv run python -m scripts.privilege_snapshot --baseline governance-baseline/grants.json
+
+baseline:  ## Re-baseline DELIBERATELY, after reviewing what check-drift reported.
+	uv run python -m scripts.privilege_snapshot --out governance-baseline/grants.json
+
 verify-convergence:
 	@mkdir -p .convergence
 	uv run python -m scripts.privilege_snapshot --out .convergence/before.json
