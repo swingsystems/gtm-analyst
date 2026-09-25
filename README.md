@@ -204,6 +204,13 @@ prediction in [`chaos/README.md`](chaos/README.md) itself.
 
 Single maintainer. [Co-maintainers wanted](CONTRIBUTING.md).
 
+## License
+
+[Apache-2.0](LICENSE). Fork it, deploy it, sell services around it — the patent
+grant is there so your legal team does not have to think about it. See
+[NOTICE](NOTICE) for the dependency license audit and what this project does
+*not* include.
+
 **Provenance:** built on a personal Snowflake account against synthetic data.
 The architecture, governance objects, agent, and evaluation are real and
 independently reproducible. The data is not a real company's.

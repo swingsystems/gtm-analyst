@@ -2,7 +2,19 @@
 name = "gaa"
 version = "0.1.0"
 description = "Safe, auditable analytics agents on Snowflake"
+readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "Rama Kattunga" }]
+keywords = ["snowflake", "analytics", "agents", "governance", "evaluation", "mcp"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",

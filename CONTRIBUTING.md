@@ -92,3 +92,13 @@ is one `git add -f` away from failing and this repository is public.
 - **No privilege-drift detection.** If someone grants a persona role to a human
   user, escalation becomes possible again and nothing notices.
 - **The experiment is 25 of 36 cells.** It stopped at an API spending limit.
+
+## Licensing of contributions
+
+This project is [Apache-2.0](LICENSE). Contributions are accepted under the
+same terms — Section 5 of the license already says so, so there is no separate
+CLA to sign and there will not be one.
+
+Do not paste code from a source whose license you have not checked. The NOTICE
+file asserts that nothing third-party is vendored here, and that assertion is
+only worth something if it stays true.
