@@ -170,3 +170,24 @@ def record_runs(root: Path, out: Path, questions: str, contracts: Path) -> None:
                 path = record_run(out, question_id, card)
                 status = "refused" if card.is_refusal else f"{len(card.rows)} rows"
                 click.echo(f"{question_id} {persona.name:<15} {arm:<19} {status:<10} {path.name}")
+
+
+@cli.command("experiment")
+@click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_SPEC_ROOT)
+@click.option("--contracts", type=click.Path(path_type=Path),
+              default=Path("semantic/contracts"))
+@click.option("--out", type=click.Path(path_type=Path), default=Path("results"))
+@click.option("--questions", default="", help="comma-separated ids; default all twelve")
+@click.option("--arms", default="", help="comma-separated arms; default all three")
+def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str) -> None:
+    """Run the experiment and write the pre-registered report."""
+    from gaa.agent.runner import ARM_TOOLS
+    from gaa.harness.run import run_experiment, write_results
+
+    arm_list = [a.strip() for a in arms.split(",") if a.strip()] or sorted(ARM_TOOLS)
+    question_ids = [q.strip() for q in questions.split(",") if q.strip()] or None
+
+    scores = run_experiment(root, contracts, arm_list, question_ids,
+                            audit_path=out / "audit.jsonl")
+    write_results(scores, arm_list, out)
+    click.echo(f"{len(scores)} cells -> {out / 'summary.md'}")
