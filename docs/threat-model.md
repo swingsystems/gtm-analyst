@@ -84,7 +84,7 @@ local log, and shared with another project.
 | Agent introspecting its way around the boundary | Secure views hide their definitions from non-owners. Probing as a persona, `VIEW_DEFINITION` is NULL and `GET_DDL` is refused. Lineage is therefore build-time metadata recorded by `apply_governance`. | Verified by probe; recorded in `f413915` |
 | Silent partial answers | A restricted persona that can see only part of what was asked must populate `why_not`. Audited across 18 recorded runs: zero silent partials. | `AnswerCard` validation; fixture audit |
 | Unauditable answers | An answered card without its SQL and Snowflake query id fails construction. | `test_an_answered_card_without_a_query_id_is_refused` |
-| Deliberately broken models reaching production numbers | Chaos suite plants known defects and requires the harness to catch them. | `tests/test_chaos.py`, 2 of 2 caught |
+| Deliberately broken models reaching production numbers | Chaos suite plants known defects and requires the harness to catch them. | `tests/test_chaos.py`, 5 of 5 caught |
 
 ---
 

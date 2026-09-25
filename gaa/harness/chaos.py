@@ -37,6 +37,27 @@ VARIANTS: dict[str, Variant] = {
         rebuild="stg_accounts+",
         caught_by="q010, where the null segment group disappears",
     ),
+    "fanout_join": Variant(
+        name="fanout_join",
+        target=WAREHOUSE / "models" / "marts" / "fct_bookings.sql",
+        rebuild="fct_bookings+",
+        caught_by="the unique test on BOOKING_ID, and every bookings total",
+    ),
+    "wrong_effective_date": Variant(
+        name="wrong_effective_date",
+        target=WAREHOUSE / "models" / "marts" / "dim_territory_scd.sql",
+        rebuild="dim_territory_scd+",
+        caught_by="q011, where a handover date lands in two territories at once",
+    ),
+    "off_by_one_quarter": Variant(
+        name="off_by_one_quarter",
+        # NOT q008, which the plan predicted. q008 filters on BOOKING_DATE and
+        # never reads FISCAL_QUARTER, so a shifted label leaves it untouched.
+        # The prediction was made before the variant existed and was wrong.
+        target=WAREHOUSE / "models" / "marts" / "dim_fiscal_calendar.sql",
+        rebuild="dim_fiscal_calendar+",
+        caught_by="q001 and every question filtering on FISCAL_QUARTER",
+    ),
 }
 
 
