@@ -1,0 +1,33 @@
+{
+  "_question_id": "q001",
+  "arm": "strict-contract",
+  "confidence": "medium",
+  "confidence_basis": "\u2014 the EMEA figure itself is a direct, unfiltered query result, but I cannot confirm whether other regions exist and were withheld by row-level access, or whether EMEA is genuinely the only region with Q3 2026 bookings.",
+  "context": {
+    "persona": "REP_INDIVIDUAL",
+    "role": "GAA_REP_INDIVIDUAL",
+    "schema": "REP"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [
+    "bookings_amount@1"
+  ],
+  "params": [
+    "(none)",
+    "2026-Q3",
+    "false"
+  ],
+  "persona": "REP_INDIVIDUAL",
+  "query_id": "01c74ba8-010b-a854-000a-95d700bccec6",
+  "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+  "rows": [
+    {
+      "REGION": "EMEA",
+      "VALUE": "1313784.51"
+    }
+  ],
+  "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+  "why_not": "My persona's access to V_BOOKINGS returned only EMEA rows. If other regions exist, their bookings totals are not visible to me and are therefore excluded from this total \u2014 I cannot report a true \"all regions\" grand total."
+}

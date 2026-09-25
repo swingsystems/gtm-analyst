@@ -1,0 +1,41 @@
+{
+  "_question_id": "q001",
+  "arm": "safe-join-contract",
+  "confidence": "high",
+  "confidence_basis": "\u2014 the metric's contract explicitly defines bookings as contracted value with intercompany bookings excluded by default, and the query ran directly against that definition for the requested period and dimension.",
+  "context": {
+    "persona": "FINANCE_GLOBAL",
+    "role": "GAA_FINANCE_GLOBAL",
+    "schema": "FINANCE"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [
+    "bookings_amount@1"
+  ],
+  "params": [
+    "(none)",
+    "2026-Q3",
+    "false"
+  ],
+  "persona": "FINANCE_GLOBAL",
+  "query_id": "01c74ba6-010b-a854-000a-95d700bccea6",
+  "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+  "rows": [
+    {
+      "REGION": "AMER",
+      "VALUE": "2005507.42"
+    },
+    {
+      "REGION": "APAC",
+      "VALUE": "4682720.27"
+    },
+    {
+      "REGION": "EMEA",
+      "VALUE": "4137843.49"
+    }
+  ],
+  "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+  "why_not": null
+}

@@ -1,0 +1,38 @@
+{
+  "_question_id": "q012",
+  "arm": "free-sql",
+  "confidence": "high",
+  "confidence_basis": "\u2014 direct sum from V_BOOKINGS filtered on FISCAL_QUARTER='2026-Q3', REGION='AMER', with the standard intercompany exclusion applied, matching the bookings_amount metric contract.",
+  "context": {
+    "persona": "FINANCE_GLOBAL",
+    "role": "GAA_FINANCE_GLOBAL",
+    "schema": "FINANCE"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [],
+  "params": [],
+  "persona": "FINANCE_GLOBAL",
+  "query_id": "01c74ba8-010b-a854-000a-95d700bcced6",
+  "question": "What were total Q3 2026 bookings for the AMER region?",
+  "rows": [
+    {
+      "N": "21",
+      "REGION": "AMER",
+      "TOTAL_BOOKINGS": "2005507.42"
+    },
+    {
+      "N": "38",
+      "REGION": "APAC",
+      "TOTAL_BOOKINGS": "4682720.27"
+    },
+    {
+      "N": "33",
+      "REGION": "EMEA",
+      "TOTAL_BOOKINGS": "4137843.49"
+    }
+  ],
+  "sql": "SELECT REGION, SUM(AMOUNT) AS TOTAL_BOOKINGS, COUNT(*) AS N\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3'\nAND (IS_INTERCOMPANY = FALSE OR IS_INTERCOMPANY IS NULL)\nGROUP BY REGION\nORDER BY REGION",
+  "why_not": null
+}

@@ -1,0 +1,35 @@
+{
+  "_question_id": "q001",
+  "arm": "free-sql",
+  "confidence": "high",
+  "confidence_basis": "\u2014 the bookings_amount metric explicitly defines and excludes intercompany by default, and the query ran cleanly against V_BOOKINGS with no access restrictions apparent (persona appears to be FINANCE_GLOBAL with visibility across all regions).",
+  "context": {
+    "persona": "FINANCE_GLOBAL",
+    "role": "GAA_FINANCE_GLOBAL",
+    "schema": "FINANCE"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [],
+  "params": [],
+  "persona": "FINANCE_GLOBAL",
+  "query_id": "01c74ba6-010b-a606-000a-95d700bcd60e",
+  "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+  "rows": [
+    {
+      "BOOKINGS_AMOUNT": "2005507.42",
+      "REGION": "AMER"
+    },
+    {
+      "BOOKINGS_AMOUNT": "4682720.27",
+      "REGION": "APAC"
+    },
+    {
+      "BOOKINGS_AMOUNT": "4137843.49",
+      "REGION": "EMEA"
+    }
+  ],
+  "sql": "SELECT REGION, SUM(AMOUNT) AS bookings_amount\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3'\n  AND IS_INTERCOMPANY = false\nGROUP BY REGION\nORDER BY REGION",
+  "why_not": null
+}

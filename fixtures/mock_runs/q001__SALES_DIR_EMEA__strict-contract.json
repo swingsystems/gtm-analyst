@@ -1,0 +1,33 @@
+{
+  "_question_id": "q001",
+  "arm": "strict-contract",
+  "confidence": "high",
+  "confidence_basis": "\u2014 the metric explicitly excludes intercompany by default and the query executed cleanly against the declared dimension.",
+  "context": {
+    "persona": "SALES_DIR_EMEA",
+    "role": "GAA_SALES_DIR_EMEA",
+    "schema": "EMEA"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [
+    "bookings_amount@1"
+  ],
+  "params": [
+    "(none)",
+    "2026-Q3",
+    "false"
+  ],
+  "persona": "SALES_DIR_EMEA",
+  "query_id": "01c74ba7-010b-a606-000a-95d700bcd616",
+  "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+  "rows": [
+    {
+      "REGION": "EMEA",
+      "VALUE": "4137843.49"
+    }
+  ],
+  "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+  "why_not": "Only EMEA region data is visible under your persona/role; bookings for other regions, if they exist, are withheld by the warehouse's access controls, not by my choice."
+}

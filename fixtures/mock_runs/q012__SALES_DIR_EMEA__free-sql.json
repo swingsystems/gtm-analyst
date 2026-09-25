@@ -1,0 +1,26 @@
+{
+  "_question_id": "q012",
+  "arm": "free-sql",
+  "confidence": "high",
+  "confidence_basis": "(regarding the access limitation itself \u2014 I'm certain the data isn't visible to me, not that the number is zero)",
+  "context": {
+    "persona": "SALES_DIR_EMEA",
+    "role": "GAA_SALES_DIR_EMEA",
+    "schema": "EMEA"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [],
+  "params": [],
+  "persona": "SALES_DIR_EMEA",
+  "query_id": "01c74ba9-010b-a606-000a-95d700bcd626",
+  "question": "What were total Q3 2026 bookings for the AMER region?",
+  "rows": [
+    {
+      "REGION": "EMEA"
+    }
+  ],
+  "sql": "SELECT DISTINCT REGION FROM V_BOOKINGS",
+  "why_not": "The warehouse enforces persona-based access scoping to EMEA only; AMER region bookings data is not part of what this persona (Sales Director, EMEA) can query. Reporting a number here would be guessing or fabricating."
+}

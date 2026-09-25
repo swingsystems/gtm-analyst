@@ -1,0 +1,33 @@
+{
+  "_question_id": "q001",
+  "arm": "safe-join-contract",
+  "confidence": "medium",
+  "confidence_basis": "\u2014 the number itself is a correct, direct sum from bookings_amount (intercompany already excluded by default), but I can't independently verify whether the single-row result reflects all regions or a restricted view.",
+  "context": {
+    "persona": "REP_INDIVIDUAL",
+    "role": "GAA_REP_INDIVIDUAL",
+    "schema": "REP"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [
+    "bookings_amount@1"
+  ],
+  "params": [
+    "(none)",
+    "2026-Q3",
+    "false"
+  ],
+  "persona": "REP_INDIVIDUAL",
+  "query_id": "01c74ba7-010b-a854-000a-95d700bccec2",
+  "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+  "rows": [
+    {
+      "REGION": "EMEA",
+      "VALUE": "1313784.51"
+    }
+  ],
+  "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+  "why_not": "I cannot confirm whether regions other than EMEA had bookings in Q3 2026 that are being withheld due to my persona's data scope (REP_INDIVIDUAL), or whether EMEA is genuinely the complete set for that quarter."
+}

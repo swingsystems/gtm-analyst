@@ -1,0 +1,33 @@
+{
+  "_question_id": "q012",
+  "arm": "strict-contract",
+  "confidence": "none",
+  "confidence_basis": "WHY_NOT: My access is scoped to the EMEA region persona (SALES_DIR_EMEA); querying bookings_amount by region returns only EMEA rows, and attempting to filter for AMER explicitly is rejected. AMER bookings data is not visible to me under this persona's permissions, so I cannot provide any figure for it, partial or otherwise.",
+  "context": {
+    "persona": "SALES_DIR_EMEA",
+    "role": "GAA_SALES_DIR_EMEA",
+    "schema": "EMEA"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [
+    "bookings_amount@1"
+  ],
+  "params": [
+    "(none)",
+    "2026-Q3",
+    "false"
+  ],
+  "persona": "SALES_DIR_EMEA",
+  "query_id": "01c74ba9-010b-a854-000a-95d700bcceea",
+  "question": "What were total Q3 2026 bookings for the AMER region?",
+  "rows": [
+    {
+      "REGION": "EMEA",
+      "VALUE": "4137843.49"
+    }
+  ],
+  "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+  "why_not": "My access is scoped to the EMEA region persona (SALES_DIR_EMEA); querying bookings_amount by region returns only EMEA rows, and attempting to filter for AMER explicitly is rejected. AMER bookings data is not visible to me under this persona's permissions, so I cannot provide any figure for it, partial or otherwise."
+}

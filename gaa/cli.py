@@ -140,3 +140,33 @@ def check_invariants(root: Path) -> None:
         click.echo(f"{failures} invariant(s) failed", err=True)
         sys.exit(1)
     click.echo("all invariants hold")
+
+
+@cli.command("record-runs")
+@click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_SPEC_ROOT)
+@click.option("--out", type=click.Path(path_type=Path), default=Path("fixtures/mock_runs"))
+@click.option("--questions", default="", help="comma-separated ids; default a representative set")
+@click.option("--contracts", type=click.Path(path_type=Path),
+              default=Path("semantic/contracts"))
+def record_runs(root: Path, out: Path, questions: str, contracts: Path) -> None:
+    """Record real agent runs as fixtures for the no-credentials demo path.
+
+    These are committed and reviewed, so they must be genuine. Anything invented
+    here would make the tier-0 demo a claim about behaviour nobody observed.
+    """
+    from gaa.agent.mock import record_run
+    from gaa.agent.runner import ARM_TOOLS, answer
+
+    spec = load_spec(root)
+    by_id = {q.id: q for q in spec.questions}
+    wanted = [q.strip() for q in questions.split(",") if q.strip()] or [
+        "q001", "q003", "q007", "q010", "q011", "q012",
+    ]
+    for question_id in wanted:
+        question = by_id[question_id]
+        for persona in spec.personas.values():
+            for arm in sorted(ARM_TOOLS):
+                card = answer(question.text, persona, arm, contracts)
+                path = record_run(out, question_id, card)
+                status = "refused" if card.is_refusal else f"{len(card.rows)} rows"
+                click.echo(f"{question_id} {persona.name:<15} {arm:<19} {status:<10} {path.name}")

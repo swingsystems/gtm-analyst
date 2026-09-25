@@ -137,3 +137,25 @@ def test_run_sql_reports_no_metrics_used():
     result = _surface().run_sql("SELECT 1 AS X")
     assert result["metrics_used"] == []
     assert result["query_id"]
+
+
+def test_free_sql_reports_lineage_from_its_own_statement():
+    """Free SQL has no contract to read lineage from, but the statement names
+    its sources. An answer card without lineage is less auditable, and the
+    auditability claim should not have an exemption for one arm."""
+    from gaa.mcp.tools import _tables_in
+
+    assert _tables_in("SELECT * FROM V_BOOKINGS") == ["V_BOOKINGS"]
+    assert _tables_in(
+        "SELECT * FROM V_BOOKINGS b JOIN V_REVENUE r ON r.BOOKING_ID = b.BOOKING_ID"
+    ) == ["V_BOOKINGS", "V_REVENUE"]
+    # A CTE alias appears alongside real tables. Overstating what was read is
+    # the safe direction for an audit trail; silently omitting is not.
+    assert "Q" in _tables_in("WITH q AS (SELECT * FROM V_BOOKINGS) SELECT * FROM q")
+
+
+@live
+def test_a_free_sql_answer_card_is_as_auditable_as_a_contract_one():
+    result = _surface().run_sql("SELECT COUNT(*) AS N FROM V_BOOKINGS")
+    assert result["lineage"] == ["V_BOOKINGS"]
+    assert result["query_id"]

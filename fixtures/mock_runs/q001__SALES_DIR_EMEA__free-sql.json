@@ -1,0 +1,27 @@
+{
+  "_question_id": "q001",
+  "arm": "free-sql",
+  "confidence": "high",
+  "confidence_basis": "\u2014 the number itself is a direct sum from V_BOOKINGS with the standard intercompany exclusion (IS_INTERCOMPANY = false), matching the bookings_amount metric's default filter, for fiscal quarter 2026-Q3.",
+  "context": {
+    "persona": "SALES_DIR_EMEA",
+    "role": "GAA_SALES_DIR_EMEA",
+    "schema": "EMEA"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [],
+  "params": [],
+  "persona": "SALES_DIR_EMEA",
+  "query_id": "01c74ba7-010b-a854-000a-95d700bcceba",
+  "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+  "rows": [
+    {
+      "REGION": "EMEA",
+      "TOTAL_BOOKINGS": "4137843.49"
+    }
+  ],
+  "sql": "SELECT REGION, SUM(AMOUNT) AS TOTAL_BOOKINGS\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3'\n  AND IS_INTERCOMPANY = false\nGROUP BY REGION\nORDER BY REGION",
+  "why_not": "I only have access to EMEA region data under this persona's permissions. Bookings for other regions (if they exist) were withheld by the warehouse's access control, not by choice \u2014 I cannot report a true global total or breakdown by multiple regions."
+}

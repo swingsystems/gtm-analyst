@@ -1,0 +1,41 @@
+{
+  "_question_id": "q012",
+  "arm": "safe-join-contract",
+  "confidence": "high",
+  "confidence_basis": "\u2014 directly queried from bookings_amount@1 metric, sliced by region, for the exact period requested; no ambiguity in \"bookings\" since the metric name and definition were explicit.",
+  "context": {
+    "persona": "FINANCE_GLOBAL",
+    "role": "GAA_FINANCE_GLOBAL",
+    "schema": "FINANCE"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [
+    "bookings_amount@1"
+  ],
+  "params": [
+    "(none)",
+    "2026-Q3",
+    "false"
+  ],
+  "persona": "FINANCE_GLOBAL",
+  "query_id": "01c74ba8-010b-a854-000a-95d700bcceda",
+  "question": "What were total Q3 2026 bookings for the AMER region?",
+  "rows": [
+    {
+      "REGION": "AMER",
+      "VALUE": "2005507.42"
+    },
+    {
+      "REGION": "APAC",
+      "VALUE": "4682720.27"
+    },
+    {
+      "REGION": "EMEA",
+      "VALUE": "4137843.49"
+    }
+  ],
+  "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+  "why_not": null
+}

@@ -1,0 +1,29 @@
+{
+  "_question_id": "q012",
+  "arm": "free-sql",
+  "confidence": "high",
+  "confidence_basis": "(on the fact of the access restriction; not a numeric answer to the question asked)",
+  "context": {
+    "persona": "REP_INDIVIDUAL",
+    "role": "GAA_REP_INDIVIDUAL",
+    "schema": "REP"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [],
+  "params": [],
+  "persona": "REP_INDIVIDUAL",
+  "query_id": "01c74baa-010b-a606-000a-95d700bcd62e",
+  "question": "What were total Q3 2026 bookings for the AMER region?",
+  "rows": [
+    {
+      "BOOKINGS_AMOUNT": "1313784.51",
+      "FISCAL_QUARTER": "2026-Q3",
+      "N": "10",
+      "REGION": "EMEA"
+    }
+  ],
+  "sql": "SELECT FISCAL_QUARTER, REGION, SUM(AMOUNT) AS bookings_amount, COUNT(*) AS n\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3' AND IS_INTERCOMPANY = false\nGROUP BY FISCAL_QUARTER, REGION",
+  "why_not": "The AMER-region bookings figure was withheld because my persona's row-level access to V_BOOKINGS only includes EMEA data \u2014 AMER records are not visible to me at all, so I cannot compute or estimate the requested total."
+}

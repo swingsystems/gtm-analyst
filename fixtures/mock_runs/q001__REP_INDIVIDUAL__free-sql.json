@@ -1,0 +1,27 @@
+{
+  "_question_id": "q001",
+  "arm": "free-sql",
+  "confidence": "medium",
+  "confidence_basis": "\u2014 the EMEA number itself is a correct sum of my visible bookings data with intercompany excluded (matching the metric's default filter), but I have low confidence that this represents the full set of regions.",
+  "context": {
+    "persona": "REP_INDIVIDUAL",
+    "role": "GAA_REP_INDIVIDUAL",
+    "schema": "REP"
+  },
+  "lineage": [
+    "V_BOOKINGS"
+  ],
+  "metrics_used": [],
+  "params": [],
+  "persona": "REP_INDIVIDUAL",
+  "query_id": "01c74ba7-010b-a854-000a-95d700bccebe",
+  "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+  "rows": [
+    {
+      "BOOKINGS_AMOUNT": "1313784.51",
+      "REGION": "EMEA"
+    }
+  ],
+  "sql": "SELECT REGION, SUM(AMOUNT) AS bookings_amount\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3'\n  AND IS_INTERCOMPANY = FALSE\nGROUP BY REGION\nORDER BY REGION",
+  "why_not": "I only have visibility into my own rep-level slice of V_BOOKINGS (27 total rows, all EMEA). Any other regions' bookings for Q3 2026 are not accessible to me under this persona, so a true company-wide \"by region\" total cannot be produced from here."
+}

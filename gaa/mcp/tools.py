@@ -6,6 +6,7 @@ enforced by the warehouse and one enforced by a prompt: an agent cannot ask for
 privileges it was not given, because there is no parameter through which to ask.
 """
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,23 @@ from gaa.spec.sql import sql_statements, strip_line_comments
 # the first keyword nobody thought to forbid; a list of permitted leaders fails
 # closed instead. Snowflake statements that read begin with SELECT or WITH.
 _READ_ONLY_LEADERS = frozenset({"SELECT", "WITH"})
+
+# Tables named after FROM or JOIN. Free SQL has no declared contract to read
+# lineage from, but the statement names its own sources, and an answer card
+# without lineage is less auditable than one with it -- "every answer is
+# auditable" should not carry an exemption for the arm that writes its own SQL.
+_SOURCE_TABLE = re.compile(r"\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_.]*)", re.IGNORECASE)
+
+
+def _tables_in(statement: str) -> list[str]:
+    """Best-effort source extraction. Named for what it is: a CTE alias will
+    appear alongside real tables, which overstates rather than hides."""
+    seen: list[str] = []
+    for match in _SOURCE_TABLE.findall(statement):
+        name = match.upper()
+        if name not in seen:
+            seen.append(name)
+    return seen
 
 
 class ToolError(Exception):
@@ -238,7 +256,7 @@ class ToolSurface:
                 "sql": body,
                 "params": [],
                 "metrics_used": [],
-                "lineage": [],
+                "lineage": _tables_in(body),
                 "query_id": entry.query_id,
                 "context": self._context(),
             }
