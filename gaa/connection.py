@@ -33,6 +33,27 @@ def private_key_der(settings: Settings) -> bytes:
     )
 
 
+def public_key_body(settings: Settings) -> str:
+    """The public half of the key-pair, as the base64 body Snowflake wants.
+
+    Derived rather than configured. ALTER USER ... SET RSA_PUBLIC_KEY takes the
+    PEM body without its header, footer, or newlines, and a key pasted into a
+    file by hand is a key that silently drifts from the one actually being used
+    to authenticate. This cannot drift: it is computed from the same private key
+    the connector signs with.
+    """
+    passphrase = settings.snowflake_private_key_passphrase
+    with settings.snowflake_private_key_path.open("rb") as fh:
+        key = serialization.load_pem_private_key(
+            fh.read(), password=passphrase.encode() if passphrase else None
+        )
+    pem = key.public_key().public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    ).decode()
+    return "".join(line for line in pem.splitlines() if not line.startswith("-----"))
+
+
 def user_for_persona(persona: Persona, settings: Settings) -> str:
     """The Snowflake user a persona connects as.
 

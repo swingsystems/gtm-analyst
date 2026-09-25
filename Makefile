@@ -1,4 +1,5 @@
-.PHONY: setup spec-validate lint test verify-integrity demo
+.PHONY: setup spec-validate lint test verify-integrity demo \
+        deploy teardown verify-convergence governance seed build
 
 setup:
 	uv sync --all-extras
@@ -7,7 +8,7 @@ spec-validate:
 	uv run gaa spec-validate --root evals/spec
 
 lint:
-	uv run ruff check gaa tests
+	uv run ruff check gaa tests scripts
 
 test:
 	uv run pytest -v
@@ -23,3 +24,31 @@ demo:  ## No account, no key, no network. Start here.
 	uv run gaa demo
 	@echo ""
 	@echo "  open results/demo/summary.md"
+
+# --- Snowflake ---------------------------------------------------------------
+# Needs .env and key-pair auth. `make demo` above needs neither; start there.
+
+seed:  ## Generate synthetic CRM seeds. Deterministic, no account needed.
+	uv run gaa synth
+
+build:  ## dbt build: models plus every data test. Fails the deploy on a red test.
+	cd warehouse && uv run dbt build
+
+deploy: seed build governance  ## Full deployment against the account in .env.
+	@echo ""
+	@echo "  deployed. now: make verify-convergence"
+
+teardown:  ## Drop the database, the service users, and the four roles.
+	uv run python -m scripts.teardown
+
+# Grants are additive: narrowing them in the SQL does not narrow them on the
+# account. A second run that changes the privilege set means the deployment
+# accumulates rather than converges, and is a different system every time.
+verify-convergence:
+	@mkdir -p .convergence
+	uv run python -m scripts.privilege_snapshot --out .convergence/before.json
+	$(MAKE) governance
+	uv run python -m scripts.privilege_snapshot --out .convergence/after.json
+	@diff -u .convergence/before.json .convergence/after.json \
+	  && echo "converged: the second run changed nothing" \
+	  || (echo ""; echo "NOT CONVERGED -- the privilege set above differs between runs"; exit 1)

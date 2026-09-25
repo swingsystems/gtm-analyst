@@ -169,7 +169,12 @@ agent ──► tool surface ──► persona service user ──► GAA.<PERSO
 ## Adopting it
 
 1. **`make demo`** — five minutes, no account.
-2. **`make deploy`** — your Snowflake, under an hour, `make teardown` to remove.
+2. **`make deploy`** — your Snowflake, under an hour. Then `make
+   verify-convergence`, which applies governance a second time and fails if the
+   account's privilege set changed. Grants are additive, so a deployment that
+   accumulates instead of converging is a different system on its second run;
+   this project lost ~70 stray privileges to exactly that. `make teardown`
+   removes everything it created.
 3. **Point it at your models** — [bring-your-own-models guide](docs/bring-your-own-models.md).
 4. **Write your questions first.** Commit the questions and reference SQL
    *before* the models they evaluate, and let the commit order prove it. A test
@@ -182,7 +187,7 @@ server; and the [90-day rollout plan](docs/rollout-plan.md).
 ## Status
 
 Working and incomplete. The warehouse, governance, tool surface, three agent
-arms, scorer, and chaos suite are built and tested (245 tests). The experiment
+arms, scorer, and chaos suite are built and tested (262 tests). The experiment
 has run partially. The Spider 2.0 adapter is unverified for feasibility, and
 three of five planned chaos variants are not built —
 [`chaos/README.md`](chaos/README.md) says which.

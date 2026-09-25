@@ -102,10 +102,14 @@ which tools their prompts describe and which contracts they are shown, not by
 capability. This is a risk to the **experiment's validity**, not to the data —
 the warehouse boundary holds either way.
 
-**3. No detection for privilege drift.** If someone grants a persona role to a
-human user, escalation becomes possible again and nothing notices. A periodic
-check of `SHOW GRANTS TO USER` against an expected set would close this. Not
-built.
+**3. Privilege drift is detectable but not detected.** If someone grants a
+persona role to a human user, escalation becomes possible again. The mechanism
+now exists — `scripts/privilege_snapshot.py` dumps the account's full grant set
+as deterministic JSON, and `make verify-convergence` fails on any change across
+two governance runs. Verified to work by granting `MONITOR ON DATABASE GAA` to
+the rep role and confirming the diff caught it. **Nothing runs it on a
+schedule**, so it catches a deployment that fails to converge, not a grant
+someone makes on a Tuesday. That gap is unclosed.
 
 **4. Audit log contents are not access-controlled.** Every tool call is written
 to JSONL carrying the SQL executed, the persona, and the policies in effect.

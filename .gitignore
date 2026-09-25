@@ -13,3 +13,4 @@ logs/
 warehouse/target/
 warehouse/dbt_packages/
 warehouse/logs/
+.convergence/

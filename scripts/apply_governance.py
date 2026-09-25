@@ -15,12 +15,18 @@ from pathlib import Path
 import click
 
 from gaa.config import load_settings
-from gaa.connection import session_for_persona
+from gaa.connection import public_key_body, session_for_persona
 from gaa.spec.models import Persona
 from gaa.spec.sql import sql_statements
+from gaa.spec.template import render
 
 GOVERNANCE_DIR = Path(__file__).parent.parent / "warehouse" / "governance"
 LINEAGE_PATH = GOVERNANCE_DIR / "lineage.json"
+
+# Lives in this directory but must never be applied by it. The glob sorts
+# alphabetically, so "teardown.sql" would run AFTER the four numbered files and
+# drop everything they had just created.
+EXCLUDED = frozenset({"teardown.sql"})
 
 # view name -> source marts, harvested from the CREATE statements themselves.
 _VIEW_DEF = re.compile(
@@ -62,11 +68,30 @@ ADMIN = Persona(
 )
 
 
+def _substitutions(settings) -> dict[str, str]:
+    """Account-specific values the DDL cannot hardcode.
+
+    Deploying against somebody else's Snowflake used to grant roles to a user
+    named GAA_OPERATOR and reference a warehouse called COMPUTE_WH. Both exist only
+    on the development account, so the first statement would fail on any other.
+    """
+    return {
+        "operator": settings.snowflake_user,
+        "warehouse": settings.snowflake_warehouse,
+        "database": settings.snowflake_database,
+        # No prefix means the personas connect as the operator, which is a valid
+        # (if weaker) configuration -- so the service-user file must still render.
+        "service_user_prefix": settings.snowflake_service_user_prefix or "GAA_SVC_",
+        "public_key": public_key_body(settings),
+    }
+
+
 @click.command()
 @click.option("--only", default=None, help="substring match on filename, e.g. '02_grants'")
 def main(only: str | None) -> None:
     settings = load_settings()
-    files = sorted(GOVERNANCE_DIR.glob("*.sql"))
+    values = _substitutions(settings)
+    files = [f for f in sorted(GOVERNANCE_DIR.glob("*.sql")) if f.name not in EXCLUDED]
     if only:
         files = [f for f in files if only in f.name]
     if not files:
@@ -77,7 +102,7 @@ def main(only: str | None) -> None:
         cursor = conn.cursor()
         for path in files:
             click.echo(f"--- {path.name}")
-            for statement in sql_statements(path.read_text()):
+            for statement in sql_statements(render(path.read_text(), values)):
                 preview = " ".join(statement.split())[:88]
                 try:
                     cursor.execute(statement)
