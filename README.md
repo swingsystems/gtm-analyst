@@ -130,7 +130,10 @@ reference SQL — and the reference SQL encoded his own mistake as truth.
 **4. The questions are mine.** Selection bias is real: I chose questions this
 architecture can express. The intercompany filter in particular was my
 invention — I flagged it as possibly imported from manufacturing, never
-confirmed it, and built it in anyway.
+confirmed it, and built it in anyway. Borrowing Spider 2.0's questions would fix
+this; [ADR 0004](docs/adr/0004-spider2-adapter-is-not-feasible.md) explains why
+their tasks cannot run under this governance model, and what narrower version
+could.
 
 **5. The data is synthetic.** It cannot reproduce real CRM entropy — duplicate
 accounts, mid-quarter reassignments, half-filled custom fields.
@@ -188,8 +191,9 @@ server; and the [90-day rollout plan](docs/rollout-plan.md).
 
 Working and incomplete. The warehouse, governance, tool surface, three agent
 arms, scorer, and chaos suite are built and tested (262 tests). The experiment
-has run partially. The Spider 2.0 adapter is unverified for feasibility, and
-three of five planned chaos variants are not built —
+has run partially. The Spider 2.0 adapter was checked and dropped
+([ADR 0004](docs/adr/0004-spider2-adapter-is-not-feasible.md)), and three of five
+planned chaos variants are not built —
 [`chaos/README.md`](chaos/README.md) says which.
 
 Single maintainer. [Co-maintainers wanted](CONTRIBUTING.md).
