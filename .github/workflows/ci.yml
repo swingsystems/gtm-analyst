@@ -3,6 +3,9 @@ name: ci
 on: [push, pull_request]
 
 jobs:
+  # Everything that needs no account. This is the gate a fork gets for free,
+  # and it must stay meaningful on its own -- most forks will never wire up a
+  # warehouse, and a CI that only works with secrets is a CI they do not have.
   check:
     runs-on: ubuntu-latest
     steps:
@@ -14,3 +17,60 @@ jobs:
       - run: uv run ruff check gaa tests scripts
       - run: uv run gaa spec-validate --root evals/spec
       - run: uv run pytest -v
+      # The no-account path is the adoption gate. If it breaks, the project is
+      # unreachable for anyone who has not already bought in.
+      - run: uv run gaa demo
+
+      - name: State plainly what this job did NOT verify
+        run: |
+          echo "::notice::No Snowflake credentials in this job. The chaos suite,"
+          echo "::notice::the governance boundary tests and the evaluation were"
+          echo "::notice::SKIPPED, not passed. See the 'warehouse' job."
+
+  # The half that needs a warehouse. Three files in this repository once claimed
+  # CI enforced the chaos suite while it held no credentials and 7 of 8 chaos
+  # tests skipped. This job is that claim made true -- or, without secrets,
+  # visibly absent rather than silently green.
+  warehouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+
+      - name: Are credentials configured?
+        id: creds
+        run: |
+          if [ -z "${{ secrets.SNOWFLAKE_ACCOUNT }}" ]; then
+            echo "::warning::No Snowflake credentials. The chaos suite and the"
+            echo "::warning::governance boundary are NOT being verified in CI."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.creds.outputs.configured == 'true'
+        run: uv sync --all-extras
+
+      - if: steps.creds.outputs.configured == 'true'
+        name: Boundary, invariants, and planted defects
+        env:
+          SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/key.p8
+          SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+          SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
+          SNOWFLAKE_DATABASE: GAA
+          SNOWFLAKE_SCHEMA: MARTS
+          SNOWFLAKE_SERVICE_USER_PREFIX: GAA_SVC_
+        run: |
+          printf '%s' "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > /tmp/key.p8
+          chmod 600 /tmp/key.p8
+          uv run pytest -v tests/test_governance_boundary.py
+          uv run gaa check-invariants --root evals/spec
+          # Last: it rebuilds models and takes minutes. A boundary failure
+          # should report before the slow job starts.
+          uv run pytest -v tests/test_chaos.py
+
+      - if: always()
+        name: Always remove the key
+        run: rm -f /tmp/key.p8

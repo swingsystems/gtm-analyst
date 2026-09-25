@@ -162,10 +162,16 @@ no Snowflake credentials, so every live test skips and 7 of the 8 chaos tests
 never execute there. The catch rate in `chaos/README.md` is a local measurement,
 not a gate.
 
-So the supply-chain concern is worse than first stated. A contributor able to
-modify a chaos variant or a reference query would weaken the harness and CI
-would stay green -- not because it was fooled, but because it never looked.
-Closing this needs a CI service account and branch protection. Neither exists.
+A credentialed `warehouse` job now exists that runs the boundary tests, the
+invariants, and the chaos suite. Without secrets configured it emits a warning
+saying those are not being verified, rather than passing green.
+
+**Residual, and it is the real one.** The secrets are not configured on any
+account, so today the gate is written but not armed. Branch protection is also
+not configured, and without it a contributor who can push to the default branch
+can weaken a chaos variant and have it merge unrun. `docs/ci-setup.md` covers
+both, including the uncomfortable part: every service user shares one public
+key, so whatever private key CI holds can act as all three personas.
 
 **7. ~~Cost is uncontrolled.~~ CLOSED on the warehouse side.** Three caps, in
 increasing bluntness: a 120-second statement timeout on every persona session

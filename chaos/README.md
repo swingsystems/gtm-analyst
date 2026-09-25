@@ -3,11 +3,14 @@
 Each file replaces one dbt model with a version carrying a known defect. The
 harness must catch every one.
 
-**These do not run in CI.** Each variant rebuilds models against a live
-Snowflake account, and CI holds no credentials, so 7 of the 8 chaos tests skip
-there. The catch rate below was measured locally on 2026-09-25 and is a
-point-in-time measurement, not a gate. Wiring it to a CI warehouse is listed in
-the README as outstanding.
+**These run in CI only once it has a warehouse.** Each variant rebuilds models
+against a live Snowflake account. The `warehouse` job in `.github/workflows/ci.yml`
+runs them when Snowflake secrets are configured, and warns loudly when they are
+not — it does not pass green in their absence. See `docs/ci-setup.md`.
+
+The catch rate below was measured locally on 2026-09-25. Until those secrets
+exist on a real account, it stays a point-in-time measurement rather than a
+gate.
 
 An evaluation suite that has never been seen to fail is not evidence. These
 exist so the catch rate is a measured number rather than an assumption — and
