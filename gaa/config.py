@@ -25,6 +25,31 @@ class Settings(BaseSettings):
     snowflake_database: str = Field(alias="SNOWFLAKE_DATABASE")
     snowflake_schema: str = Field(alias="SNOWFLAKE_SCHEMA")
 
+    # Cost caps. Nothing bounded agent spend before these existed, and this
+    # project's own experiment was halted by a spending limit -- the same class
+    # of problem from the other side.
+    gaa_statement_timeout_seconds: int = Field(default=120,
+                                               alias="GAA_STATEMENT_TIMEOUT_SECONDS")
+    gaa_max_rows: int = Field(default=5000, alias="GAA_MAX_ROWS")
+    gaa_credit_quota: int = Field(default=50, alias="GAA_CREDIT_QUOTA")
+
+    @field_validator("gaa_statement_timeout_seconds")
+    @classmethod
+    def _timeout_cannot_be_disabled(cls, value: int) -> int:
+        """Snowflake reads 0 as "no limit". Accepting it from configuration
+        would let one env var silently remove the cap, which is exactly how a
+        cap stops existing without anyone deciding to remove it."""
+        if value <= 0:
+            raise ValueError("statement timeout must be positive; 0 means no limit")
+        return value
+
+    @field_validator("gaa_max_rows")
+    @classmethod
+    def _row_cap_must_be_positive(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("gaa_max_rows must be positive")
+        return value
+
 
     @field_validator("snowflake_private_key_passphrase", "snowflake_service_user_prefix",
                      mode="before")

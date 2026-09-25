@@ -43,3 +43,21 @@ GRANT USAGE, OPERATE ON WAREHOUSE {{ warehouse }} TO ROLE GAA_LOADER;
 GRANT USAGE ON WAREHOUSE {{ warehouse }} TO ROLE GAA_FINANCE_GLOBAL;
 GRANT USAGE ON WAREHOUSE {{ warehouse }} TO ROLE GAA_SALES_DIR_EMEA;
 GRANT USAGE ON WAREHOUSE {{ warehouse }} TO ROLE GAA_REP_INDIVIDUAL;
+
+-- ---------------------------------------------------------------- COST
+-- The blunt backstop. The statement timeout and row cap bound one query; this
+-- bounds the month. Nothing capped agent spend before, and this project's own
+-- experiment was halted by a spending limit -- the same problem from the other
+-- side, where the bill arrived as a stopped experiment rather than an invoice.
+--
+-- NOTIFY at 80% and SUSPEND at 100%, not SUSPEND_IMMEDIATE: killing running
+-- statements mid-flight turns a budget event into a data-quality incident,
+-- because a half-finished dbt build looks exactly like a broken model.
+USE ROLE ACCOUNTADMIN;
+CREATE RESOURCE MONITOR IF NOT EXISTS GAA_MONITOR
+    WITH CREDIT_QUOTA = {{ credit_quota }}
+    FREQUENCY = MONTHLY
+    START_TIMESTAMP = IMMEDIATELY
+    TRIGGERS ON 80 PERCENT DO NOTIFY
+             ON 100 PERCENT DO SUSPEND;
+ALTER WAREHOUSE {{ warehouse }} SET RESOURCE_MONITOR = GAA_MONITOR;

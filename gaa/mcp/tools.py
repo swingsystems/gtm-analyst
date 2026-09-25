@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from gaa.config import load_settings
 from gaa.connection import session_for_persona
 from gaa.mcp.audit import AuditEntry, AuditLog
 from gaa.runner.reference import normalise
@@ -43,6 +44,25 @@ def _tables_in(statement: str) -> list[str]:
 
 class ToolError(Exception):
     """Raised when a tool call cannot be satisfied."""
+
+
+def _fetch_capped(cursor, columns: list[str]) -> tuple[list[dict], bool]:
+    """Read at most `gaa_max_rows`, and say so when there was more.
+
+    fetchmany(n + 1) rather than fetchmany(n): asking for one extra row is how
+    you learn whether you hit the cap or the end of the result. Truncating to n
+    and reporting nothing would hand the agent a short answer that looks
+    complete, which is the same failure as a silent partial answer from a
+    restricted persona -- and the card validation refuses those for a reason.
+    """
+    cap = load_settings().gaa_max_rows
+    fetched = cursor.fetchmany(cap + 1)
+    truncated = len(fetched) > cap
+    rows = [
+        dict(zip(columns, (normalise(v) for v in row), strict=True))
+        for row in fetched[:cap]
+    ]
+    return rows, truncated
 
 
 class ToolSurface:
@@ -196,14 +216,12 @@ class ToolSurface:
                 cursor = conn.cursor()
                 cursor.execute(compiled.sql, compiled.params)
                 columns = [c[0] for c in cursor.description]
-                rows = [
-                    dict(zip(columns, (normalise(v) for v in row), strict=True))
-                    for row in cursor.fetchall()
-                ]
+                rows, truncated = _fetch_capped(cursor, columns)
                 entry.query_id = cursor.sfqid
 
             return {
                 "rows": rows,
+                "truncated": truncated,
                 "sql": compiled.sql,
                 "params": compiled.params,
                 "metrics_used": compiled.metrics_used,
@@ -245,14 +263,12 @@ class ToolSurface:
                 cursor = conn.cursor()
                 cursor.execute(body)
                 columns = [c[0] for c in cursor.description]
-                rows = [
-                    dict(zip(columns, (normalise(v) for v in row), strict=True))
-                    for row in cursor.fetchall()
-                ]
+                rows, truncated = _fetch_capped(cursor, columns)
                 entry.query_id = cursor.sfqid
 
             return {
                 "rows": rows,
+                "truncated": truncated,
                 "sql": body,
                 "params": [],
                 "metrics_used": [],

@@ -124,9 +124,15 @@ schedule**, so it catches a deployment that fails to converge, not a grant
 someone makes on a Tuesday. That gap is unclosed.
 
 **4. Audit log contents are not access-controlled.** Every tool call is written
-to JSONL carrying the SQL executed, the persona, and the policies in effect.
-Anyone who can read the file learns the schema shape and the governance model.
-Not encrypted, not rotated, not permission-scoped.
+to JSONL. This previously claimed the log carries "the SQL executed and the
+policies in effect"; it does not, and the overstatement is corrected rather than
+left flattering. `AuditEntry` records persona, role, schema, tool, outcome,
+metrics used, Snowflake query id, duration, and error text.
+
+That is still enough to learn the schema shape, the persona topology, and which
+questions were refused. The error text is the sharpest part, since a refusal
+message can quote what was asked for. Not encrypted, not rotated, not
+permission-scoped.
 
 **5. The MCP server is unauthenticated.** It binds a persona at startup and
 trusts its transport. Fine for stdio and a local client; it would need real
@@ -143,10 +149,20 @@ modify a chaos variant or a reference query would weaken the harness and CI
 would stay green -- not because it was fooled, but because it never looked.
 Closing this needs a CI service account and branch protection. Neither exists.
 
-**7. Cost is uncontrolled.** Nothing caps the credits an agent may spend. A
-pathological question could scan large tables repeatedly. The real experiment run
-was in fact halted by an Anthropic spending limit, which is the same class of
-problem from the other side.
+**7. ~~Cost is uncontrolled.~~ CLOSED on the warehouse side.** Three caps, in
+increasing bluntness: a 120-second statement timeout on every persona session
+(Snowflake's account default is often two days); a row cap with the overflow
+disclosed as `truncated` rather than silently shortening the answer; and a
+monthly resource monitor on the warehouse, NOTIFY at 80% and SUSPEND at 100%.
+Verified live — the session reports a 120s timeout and `GAA_MONITOR` is attached
+at warehouse level with a 50-credit monthly quota.
+
+SUSPEND rather than SUSPEND_IMMEDIATE deliberately: killing statements mid-flight
+turns a budget event into a data-quality incident, because a half-finished dbt
+build looks exactly like a broken model.
+
+**Residual.** Nothing caps *model* spend, which is what actually halted the
+experiment here. That limit lives with the model provider, not in this code.
 
 ---
 

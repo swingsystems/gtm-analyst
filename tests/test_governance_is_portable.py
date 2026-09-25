@@ -19,7 +19,8 @@ GOVERNANCE = Path(__file__).parent.parent / "warehouse" / "governance"
 # Everything the renderer is allowed to supply. A new placeholder must be added
 # here AND wired into scripts/apply_governance.py, which is the point: a value
 # that cannot be derived from configuration has no business in the DDL.
-SUPPLIED = {"operator", "warehouse", "database", "service_user_prefix", "public_key"}
+SUPPLIED = {"operator", "warehouse", "database", "service_user_prefix",
+            "public_key", "credit_quota"}
 
 
 def _sql_files() -> list[Path]:
@@ -105,3 +106,13 @@ def test_teardown_does_not_drop_the_warehouse() -> None:
     or be shared with unrelated work, so tearing it down is not ours to do."""
     text = (GOVERNANCE / "teardown.sql").read_text().upper()
     assert "DROP WAREHOUSE" not in text
+
+
+def test_a_numeric_value_is_checked_as_digits_not_waved_through() -> None:
+    """credit_quota is a number, so the identifier rule rejects it. The fix must
+    be a numeric class, not a wider identifier rule -- widening _IDENTIFIER to
+    admit leading digits would have let '50; DROP DATABASE GAA' through."""
+    assert render("CREDIT_QUOTA = {{ credit_quota }}", {"credit_quota": "50"}) \
+        == "CREDIT_QUOTA = 50"
+    with pytest.raises(ValueError, match="whole number"):
+        render("CREDIT_QUOTA = {{ credit_quota }}", {"credit_quota": "50; DROP DATABASE GAA"})

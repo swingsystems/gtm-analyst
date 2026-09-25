@@ -26,6 +26,13 @@ _IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_$]*$")
 # by some later value that reaches a GRANT.
 _NOT_AN_IDENTIFIER = frozenset({"public_key"})
 
+# Values that are numbers, not names. Exempt from the identifier rule but NOT
+# unchecked: they still go into DDL as text, so they are validated as digits.
+# Widening _IDENTIFIER to admit leading digits would have been the lazy fix and
+# would have let "50; DROP" through in a value that was never meant to be one.
+_NUMERIC = frozenset({"credit_quota"})
+_DIGITS = re.compile(r"^[0-9]+$")
+
 
 class UnknownPlaceholder(KeyError):
     """The DDL asked for a value the caller did not supply.
@@ -52,6 +59,10 @@ def render(sql: str, values: dict[str, str]) -> str:
     def _sub(match: re.Match[str]) -> str:
         name = match.group(1)
         value = values[name]
+        if name in _NUMERIC:
+            if not _DIGITS.match(value):
+                raise ValueError(f"{name}={value!r} must be a whole number")
+            return value
         if name not in _NOT_AN_IDENTIFIER and not _IDENTIFIER.match(value):
             raise ValueError(
                 f"{name}={value!r} is not a bare identifier; it would be "

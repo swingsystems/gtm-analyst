@@ -83,6 +83,7 @@ def _substitutions(settings) -> dict[str, str]:
         # (if weaker) configuration -- so the service-user file must still render.
         "service_user_prefix": settings.snowflake_service_user_prefix or "GAA_SVC_",
         "public_key": public_key_body(settings),
+        "credit_quota": str(settings.gaa_credit_quota),
     }
 
 

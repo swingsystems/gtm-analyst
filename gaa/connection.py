@@ -74,6 +74,22 @@ def user_for_persona(persona: Persona, settings: Settings) -> str:
     return settings.snowflake_user
 
 
+def session_parameters_for(persona: Persona, settings: Settings) -> dict[str, str]:
+    """Session parameters every persona connection carries.
+
+    A named function rather than a literal inside connect() so the caps can be
+    asserted without opening a session. QUERY_TAG is what makes spend
+    attributable per persona in ACCOUNT_USAGE, so a cost cap that cost us the
+    tag would be a bad trade.
+    """
+    return {
+        "QUERY_TAG": f"gaa:{persona.name}",
+        # Snowflake's account default is often two days. A runaway scan bills
+        # for all of it.
+        "STATEMENT_TIMEOUT_IN_SECONDS": str(settings.gaa_statement_timeout_seconds),
+    }
+
+
 @contextmanager
 def session_for_persona(
     persona: Persona, settings: Settings | None = None
@@ -88,7 +104,7 @@ def session_for_persona(
         warehouse=settings.snowflake_warehouse,
         database=settings.snowflake_database,
         schema=persona.snowflake_schema,
-        session_parameters={"QUERY_TAG": f"gaa:{persona.name}"},
+        session_parameters=session_parameters_for(persona, settings),
     )
     try:
         yield conn
