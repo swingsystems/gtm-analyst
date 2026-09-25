@@ -134,9 +134,27 @@ questions were refused. The error text is the sharpest part, since a refusal
 message can quote what was asked for. Not encrypted, not rotated, not
 permission-scoped.
 
-**5. The MCP server is unauthenticated.** It binds a persona at startup and
-trusts its transport. Fine for stdio and a local client; it would need real
-authentication before being exposed over a network.
+**5. ~~The MCP server is unauthenticated.~~ CLOSED for the reachable case.**
+Over stdio the server still trusts its transport, and that is sound: the pipe
+comes from a process the user started and the operating system is the boundary.
+
+The risk was that the SDK also speaks `sse` and `streamable-http`, so network
+exposure was one argument away, and on those transports "trusts its transport"
+means anyone who can reach the port is the persona. A network transport now
+refuses to start without `GAA_MCP_TOKEN`, checked **before** the server is built
+and before anything binds -- refusing after the port is open is not refusing. A
+token under 32 characters is rejected too: a guessable one is the same exposure
+plus the belief that it is closed. An unknown transport raises rather than
+falling through to the stdio path, because new transports arrive in SDK releases
+without asking.
+
+Requests are checked by an ASGI wrapper around the whole app rather than a
+route, so nothing reaches the tool surface unauthenticated, and the comparison
+uses `compare_digest` so the token cannot be recovered a character at a time.
+
+**Residual.** One shared secret, no rotation, no per-caller identity, and no
+TLS termination of its own. It is a gate, not an identity system. Anything
+facing a real network wants a reverse proxy doing mTLS or OIDC in front.
 
 **6. The evaluation path is not gated at all.** This was previously written as
 if CI ran the chaos suite and the evaluation on every PR. It does not: CI holds

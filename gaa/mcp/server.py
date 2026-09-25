@@ -14,6 +14,7 @@ from pathlib import Path
 
 from mcp.server import MCPServer
 
+from gaa.mcp.auth import require_token_for_transport, token_matches
 from gaa.mcp.tools import ToolSurface
 from gaa.spec.loader import load_spec
 
@@ -58,11 +59,59 @@ def build_server(
     return server
 
 
+def bearer_guard(app, expected: str):
+    """ASGI wrapper rejecting any request without the right bearer token.
+
+    Wrapping the app rather than registering a route: a route can be bypassed by
+    another route, and the whole point is that nothing reaches the tool surface
+    unauthenticated. Every HTTP request through this server passes here or does
+    not pass.
+    """
+
+    async def guarded(scope, receive, send):
+        if scope["type"] == "http":
+            headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
+            if not token_matches(expected, headers.get("authorization")):
+                await send({
+                    "type": "http.response.start",
+                    "status": 401,
+                    "headers": [
+                        (b"content-type", b"application/json"),
+                        # RFC 7235 requires this on a 401. Its absence is how a
+                        # client learns nothing about why it was refused.
+                        (b"www-authenticate", b'Bearer realm="gaa"'),
+                    ],
+                })
+                await send({"type": "http.response.body", "body": b'{"error":"unauthorized"}'})
+                return
+        await app(scope, receive, send)
+
+    return guarded
+
+
 def serve(
     persona_name: str,
     contracts_root: Path,
     audit_path: Path | None = None,
     spec_root: Path = DEFAULT_SPEC_ROOT,
+    transport: str = "stdio",
+    token: str | None = None,
 ) -> None:
-    """Serve over stdio until the client disconnects."""
-    build_server(persona_name, contracts_root, audit_path, spec_root).run()
+    """Serve until the client disconnects.
+
+    A network transport refuses to start without a token. That check runs BEFORE
+    the server is built and before anything binds a port -- refusing after the
+    port is open is not refusing.
+    """
+    require_token_for_transport(transport, token)
+    server = build_server(persona_name, contracts_root, audit_path, spec_root)
+
+    if transport == "stdio":
+        server.run(transport="stdio")
+        return
+
+    import uvicorn
+
+    app = (server.streamable_http_app() if transport == "streamable-http"
+           else server.sse_app())
+    uvicorn.run(bearer_guard(app, token or ""), host="127.0.0.1", port=8000)

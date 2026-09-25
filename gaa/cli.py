@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -224,6 +225,33 @@ def rescore(root: Path, cards: Path, out: Path) -> None:
                                    question_id, ALL_REGIONS))
     write_results(scores, sorted(arms), out)
     click.echo(f"rescored {len(scores)} cells from {cards} -> {out / 'summary.md'}")
+
+
+@cli.command("serve")
+@click.option("--persona", required=True, help="the ONE identity this server is bound to")
+@click.option("--contracts", type=click.Path(path_type=Path),
+              default=Path("semantic/contracts"))
+@click.option("--audit", type=click.Path(path_type=Path), default=None)
+@click.option("--transport", default="stdio",
+              type=click.Choice(["stdio", "sse", "streamable-http"]))
+def serve_cmd(persona: str, contracts: Path, audit: Path | None, transport: str) -> None:
+    """Serve the governed tool surface for one persona.
+
+    One server per persona, for its whole lifetime. An agent connected to it has
+    no protocol-level way to ask for a different identity.
+
+    stdio needs no credential -- the pipe comes from a process you started. A
+    network transport refuses to start without GAA_MCP_TOKEN, because over the
+    network the persona this server is bound to is whoever can reach the port.
+    """
+    from gaa.mcp.auth import AuthError
+    from gaa.mcp.server import serve
+
+    token = os.environ.get("GAA_MCP_TOKEN") or None
+    try:
+        serve(persona, contracts, audit, transport=transport, token=token)
+    except AuthError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @cli.command("viewer")
