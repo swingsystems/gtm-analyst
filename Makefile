@@ -1,5 +1,5 @@
 .PHONY: setup spec-validate lint test verify-integrity demo \
-        deploy teardown verify-convergence governance seed build
+        deploy teardown verify-convergence governance seed build viewer
 
 setup:
 	uv sync --all-extras
@@ -19,6 +19,10 @@ verify-integrity:
 .PHONY: governance
 governance:
 	uv run python scripts/apply_governance.py
+
+viewer:  ## One question, three identities, one self-contained HTML file.
+	uv run gaa viewer
+	@echo "  open results/viewer.html"
 
 demo:  ## No account, no key, no network. Start here.
 	uv run gaa demo

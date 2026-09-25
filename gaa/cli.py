@@ -226,6 +226,22 @@ def rescore(root: Path, cards: Path, out: Path) -> None:
     click.echo(f"rescored {len(scores)} cells from {cards} -> {out / 'summary.md'}")
 
 
+@cli.command("viewer")
+@click.option("--cards", type=click.Path(path_type=Path),
+              default=Path("results/pilot2/cards.json"))
+@click.option("--question", default="excluding intercompany",
+              help="substring of the question to render")
+@click.option("--out", type=click.Path(path_type=Path), default=Path("results/viewer.html"))
+def viewer(cards: Path, question: str, out: Path) -> None:
+    """Render one question, three identities, into a self-contained page."""
+    from gaa.viewer.build import build_page, load_cards
+
+    page = build_page(load_cards(cards), question)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(page)
+    click.echo(f"wrote {out}  ({len(page)} bytes, no network required)")
+
+
 @cli.command("demo")
 @click.option("--cards", type=click.Path(path_type=Path),
               default=Path("results/pilot2/cards.json"))

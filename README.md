@@ -41,6 +41,11 @@ credentials of any kind.
 Same question. Same SQL. Different answers, because the **warehouse** decides
 what each identity may see — not the prompt.
 
+`make viewer` renders that as one self-contained page, with the withholding
+where it belongs — next to the numbers, not in a footnote:
+
+![Three personas answering one question, each showing its role, schema, metric version, query id, and what it withheld](docs/images/three-personas.png)
+
 ### Every answer carries what you need to check it
 
 ```
@@ -190,7 +195,8 @@ server; and the [90-day rollout plan](docs/rollout-plan.md).
 ## Status
 
 Working and incomplete. The warehouse, governance, tool surface, three agent
-arms, scorer, and chaos suite are built and tested (262 tests). The experiment
+arms, scorer, and chaos suite are built and tested (271 tests; 246 of them need
+no credentials). The experiment
 has run partially. The Spider 2.0 adapter was checked and dropped
 ([ADR 0004](docs/adr/0004-spider2-adapter-is-not-feasible.md)), and three of five
 planned chaos variants are not built —

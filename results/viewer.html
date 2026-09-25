@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang=en><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width, initial-scale=1">
+<title>One question, three identities</title>
+<style>
+:root { color-scheme: light dark; --fg:#111; --bg:#fff; --mut:#666; --line:#d8d8d8;
+        --warn:#8a4b00; --warnbg:#fff4e5; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg:#e8e8e8; --bg:#141414; --mut:#9a9a9a; --line:#333;
+          --warn:#ffcf8f; --warnbg:#3a2a12; } }
+body { font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+       color: var(--fg); background: var(--bg); margin: 0; padding: 2rem; }
+h1 { font-size: 1.15rem; font-weight: 600; margin: 0 0 .25rem; }
+.q { font-size: 1.05rem; margin: 0 0 .25rem; }
+.sub { color: var(--mut); margin: 0 0 1.75rem; font-size: .85rem; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1.25rem; }
+.col { border: 1px solid var(--line); border-radius: 8px; padding: 1rem; min-width: 0; }
+.col h2 { font-size: .8rem; letter-spacing: .06em; margin: 0; font-family: ui-monospace, monospace; }
+.scope { color: var(--mut); font-size: .8rem; margin: .15rem 0 .9rem; }
+table.rows { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums;
+             display: block; overflow-x: auto; }
+table.rows th { text-align: left; font-size: .7rem; color: var(--mut); text-transform: uppercase;
+                letter-spacing: .05em; border-bottom: 1px solid var(--line); padding: .3rem .5rem .3rem 0; }
+table.rows td { padding: .3rem .5rem .3rem 0; white-space: nowrap; }
+table.rows td:last-child { text-align: right; }
+.empty { color: var(--mut); font-style: italic; }
+.withheld { margin: .9rem 0; padding: .6rem .7rem; border-radius: 6px; font-size: .85rem;
+            background: var(--warnbg); color: var(--warn); }
+.withheld.none { background: transparent; color: var(--mut); padding-left: 0; font-style: italic; }
+.tag { display: inline-block; font-size: .65rem; text-transform: uppercase; letter-spacing: .08em;
+       font-weight: 700; margin-right: .5rem; }
+dl.prov { display: grid; grid-template-columns: max-content 1fr; gap: .1rem .7rem;
+          font-size: .75rem; margin: .9rem 0 .5rem; }
+dl.prov dt { color: var(--mut); }
+dl.prov dd { margin: 0; font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+.qid { font-size: .7rem; }
+details summary { cursor: pointer; font-size: .78rem; color: var(--mut); }
+pre { overflow-x: auto; font-size: .72rem; background: rgba(127,127,127,.09);
+      padding: .6rem; border-radius: 5px; }
+footer { margin-top: 2rem; color: var(--mut); font-size: .78rem; max-width: 62ch; }
+</style></head><body>
+<h1>One question, three identities</h1>
+<p class=q>What were total bookings for Q3 2026 by region, excluding intercompany?</p>
+<p class=sub>arm <code>strict-contract</code> &middot; recorded against a live Snowflake account &middot;
+nothing on this page was computed at render time</p>
+<div class=cols>
+    <section class="col finance_global">
+      <h2>FINANCE_GLOBAL</h2>
+      <p class=scope>sees everything</p>
+      <table class=rows><thead><tr><th>REGION</th><th>VALUE</th></tr></thead><tbody><tr><td>AMER</td><td>2005507.42</td></tr><tr><td>APAC</td><td>4682720.27</td></tr><tr><td>EMEA</td><td>4137843.49</td></tr></tbody></table>
+      <div class="withheld none">nothing withheld</div>
+      <dl class=prov>
+        <dt>role</dt><dd>GAA_FINANCE_GLOBAL</dd>
+        <dt>schema</dt><dd>FINANCE</dd>
+        <dt>metrics</dt><dd>bookings_amount@1</dd>
+        <dt>lineage</dt><dd>V_BOOKINGS</dd>
+        <dt>query id</dt><dd class=qid>01c74cd7-010b-a885-000a-95d700bcf13e</dd>
+      </dl>
+      <details><summary>SQL</summary><pre>SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE
+FROM V_BOOKINGS
+WHERE FISCAL_QUARTER = ?
+  AND IS_INTERCOMPANY = ?
+GROUP BY 1
+ORDER BY 1</pre></details>
+    </section>
+    <section class="col sales_dir_emea">
+      <h2>SALES_DIR_EMEA</h2>
+      <p class=scope>sees EMEA only</p>
+      <table class=rows><thead><tr><th>REGION</th><th>VALUE</th></tr></thead><tbody><tr><td>EMEA</td><td>4137843.49</td></tr></tbody></table>
+      <div class=withheld><span class=tag>withheld</span>The result only covers the EMEA region, which is what this persona has access to. If bookings for other regions were intended, that data was not visible/returned and is withheld — I cannot report a &quot;total across all regions&quot; since the underlying warehouse only returned the region(s) this persona can see.</div>
+      <dl class=prov>
+        <dt>role</dt><dd>GAA_SALES_DIR_EMEA</dd>
+        <dt>schema</dt><dd>EMEA</dd>
+        <dt>metrics</dt><dd>bookings_amount@1</dd>
+        <dt>lineage</dt><dd>V_BOOKINGS</dd>
+        <dt>query id</dt><dd class=qid>01c74cd8-010b-a606-000a-95d700bcdde6</dd>
+      </dl>
+      <details><summary>SQL</summary><pre>SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE
+FROM V_BOOKINGS
+WHERE FISCAL_QUARTER = ?
+  AND IS_INTERCOMPANY = ?
+GROUP BY 1
+ORDER BY 1</pre></details>
+    </section>
+    <section class="col rep_individual">
+      <h2>REP_INDIVIDUAL</h2>
+      <p class=scope>sees own book only</p>
+      <table class=rows><thead><tr><th>REGION</th><th>VALUE</th></tr></thead><tbody><tr><td>EMEA</td><td>1313784.51</td></tr></tbody></table>
+      <div class=withheld><span class=tag>withheld</span>My access (persona REP_INDIVIDUAL) only returns EMEA rows for this metric — no other regions appear in the result set, so I cannot confirm whether other regions had bookings or whether they exist but are outside what I&#x27;m permitted to see. This is a partial view, not necessarily the global total across all regions.</div>
+      <dl class=prov>
+        <dt>role</dt><dd>GAA_REP_INDIVIDUAL</dd>
+        <dt>schema</dt><dd>REP</dd>
+        <dt>metrics</dt><dd>bookings_amount@1</dd>
+        <dt>lineage</dt><dd>V_BOOKINGS</dd>
+        <dt>query id</dt><dd class=qid>01c74cd9-010b-a885-000a-95d700bcf1c2</dd>
+      </dl>
+      <details><summary>SQL</summary><pre>SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE
+FROM V_BOOKINGS
+WHERE FISCAL_QUARTER = ?
+  AND IS_INTERCOMPANY = ?
+GROUP BY 1
+ORDER BY 1</pre></details>
+    </section></div>
+<footer>Each column ran the <em>same</em> SQL as a different Snowflake identity. The
+differences come from the warehouse &mdash; schema-scoped grants and secure views &mdash;
+not from the prompt. Every query id resolves in <code>ACCOUNT_USAGE</code>.</footer>
+</body></html>
