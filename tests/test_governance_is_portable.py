@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+from gaa.spec.sql import strip_line_comments
 from gaa.spec.template import UnknownPlaceholder, placeholders, render
 
 GOVERNANCE = Path(__file__).parent.parent / "warehouse" / "governance"
@@ -31,12 +32,27 @@ def test_the_governance_directory_is_not_empty() -> None:
 
 
 @pytest.mark.parametrize("path", _sql_files(), ids=lambda p: p.name)
-def test_no_account_specific_identifier_is_hardcoded(path: Path) -> None:
-    text = path.read_text()
-    # The developer's username, the default warehouse on a trial account, and a
-    # literal RSA key -- each one silently wrong on somebody else's account.
-    for literal in ("GAA_OPERATOR", "COMPUTE_WH"):
-        assert literal not in text.upper(), f"{path.name} hardcodes {literal}"
+def test_no_principal_is_named_literally(path: Path) -> None:
+    """Match the shape of a hardcoded principal, not one known bad name.
+
+    The first version of this test forbade the literal string of the developer's
+    own username. That catches exactly one mistake -- the one already made --
+    and passes happily for the next person who writes their own username in.
+    A USER or WAREHOUSE that is not a placeholder is the actual defect.
+    """
+    # Comments first: these files explain themselves at length, and prose like
+    # "one service user per persona" is not a grant.
+    text = strip_line_comments(path.read_text())
+    # Collapse placeholder bodies too: "{{ warehouse }}" contains the very word
+    # being searched for, so the scan would flag the fix as the defect.
+    text = re.sub(r"\{\{\s*\w+\s*\}\}", "{{}}", text)
+    for keyword in ("USER", "WAREHOUSE"):
+        for match in re.finditer(rf"\b{keyword}\s+(?!IF\b)(\S+)", text, re.IGNORECASE):
+            named = match.group(1)
+            assert named.startswith("{{"), (
+                f"{path.name} names {keyword} {named} literally; it must come from "
+                f"configuration, since it does not exist on anybody else's account"
+            )
     assert not re.search(r"RSA_PUBLIC_KEY\s*=\s*'(?!\{\{)", text), (
         f"{path.name} embeds a literal public key"
     )

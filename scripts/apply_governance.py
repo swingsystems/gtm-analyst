@@ -71,9 +71,9 @@ ADMIN = Persona(
 def _substitutions(settings) -> dict[str, str]:
     """Account-specific values the DDL cannot hardcode.
 
-    Deploying against somebody else's Snowflake used to grant roles to a user
-    named GAA_OPERATOR and reference a warehouse called COMPUTE_WH. Both exist only
-    on the development account, so the first statement would fail on any other.
+    Deploying against somebody else's Snowflake used to grant roles to the
+    developer's own username and reference a warehouse that exists only on the
+    development account, so the first statement would fail on any other.
     """
     return {
         "operator": settings.snowflake_user,

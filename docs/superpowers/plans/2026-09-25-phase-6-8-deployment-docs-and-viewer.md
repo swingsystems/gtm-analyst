@@ -140,8 +140,9 @@ All seven tasks complete. Three deviations from the plan as written, each made
 deliberately:
 
 **Task 5 grew.** Verifying `make deploy` against another account exposed that it
-could not run against one: the DDL granted roles to a user literally named
-GAA_OPERATOR, referenced COMPUTE_WH, and embedded an RSA public key. The README
+could not run against one: the DDL granted roles to the developer's own
+username, named a warehouse that exists only on that account, and embedded an
+RSA public key. The README
 already claimed portability, so this was a false claim rather than a missing
 feature. Fixed, and convergence was verified live — 69 grants, second run
 identical — then proven able to fail by injecting a grant and catching the diff.
