@@ -12,6 +12,7 @@ from collections import Counter, defaultdict
 from dataclasses import asdict
 from pathlib import Path
 
+from gaa.agent.card import AnswerCard
 from gaa.agent.runner import ARM_TOOLS, answer
 from gaa.harness.score import Outcome, RefusalKind, Score, score_answer
 from gaa.spec.loader import Spec, load_spec
@@ -31,6 +32,7 @@ def run_experiment(
     question_ids: list[str] | None = None,
     audit_path: Path | None = None,
     cards_path: Path | None = None,
+    resume_from: Path | None = None,
 ) -> list[Score]:
     """Every question x persona x arm. A missing cell is an error, not an omission.
 
@@ -45,14 +47,36 @@ def run_experiment(
     arms = arms or sorted(ARM_TOOLS)
     questions = [q for q in spec.questions if not question_ids or q.id in question_ids]
 
+    # Resume replays recorded cards for cells already run and calls the model
+    # only for the rest. The pilot here died mid-grid on a provider spending
+    # limit with 25 of 36 cells recorded, and re-running the 25 would have cost
+    # real money to reproduce answers already on disk.
+    #
+    # Recorded cells are RESCORED rather than trusted: a score is cheap and
+    # deterministic, the card is the expensive artifact, and carrying forward an
+    # old score would silently mix scorer versions in one report. Three scorer
+    # bugs have been found in this project, so a report spanning two scorers is
+    # a report nobody can interpret.
+    done: dict[tuple[str, str, str], dict] = {}
+    if resume_from and resume_from.exists():
+        for record in json.loads(resume_from.read_text()):
+            key = (record["_question_id"], record["persona"], record["arm"])
+            done[key] = record
+
     scores: list[Score] = []
     cards: list[dict] = []
     for question in questions:
         for persona_name, persona in spec.personas.items():
             truth = next(e.rows for e in question.expected if e.persona == persona_name)
             for arm in arms:
-                card = answer(question.text, persona, arm, contracts_root,
-                              audit_path=audit_path)
+                recorded = done.get((question.id, persona_name, arm))
+                if recorded is not None:
+                    card = AnswerCard.model_validate(
+                        {k: v for k, v in recorded.items() if not k.startswith("_")}
+                    )
+                else:
+                    card = answer(question.text, persona, arm, contracts_root,
+                                  audit_path=audit_path)
                 cards.append({**card.model_dump(), "_question_id": question.id})
                 scores.append(score_answer(
                     card, truth, PERMITTED_REGIONS[persona_name], question.id, ALL_REGIONS

@@ -69,3 +69,51 @@ def test_every_cell_appears_individually():
     """Row-level visibility. An aggregate hides the asymmetry between arms."""
     report = summarise(_sample(), ARMS)
     assert report.count("| q011 |") == 3
+
+
+def test_resume_replays_recorded_cells_instead_of_paying_for_them_again(
+    tmp_path, monkeypatch
+) -> None:
+    """The pilot died mid-grid on a provider spending limit with 25 of 36 cells
+    recorded. Re-running the 25 would spend real money reproducing answers that
+    are already on disk, so resume must not call the model for them at all --
+    asserted by making the model call raise.
+    """
+    import json
+    from pathlib import Path
+
+    from gaa.harness import run as run_mod
+
+    repo = Path(__file__).parent.parent
+    recorded = json.loads((repo / "results" / "pilot2" / "cards.json").read_text())
+    prior = tmp_path / "cards.json"
+    prior.write_text(json.dumps(recorded))
+
+    def _never(*args, **kwargs):
+        raise AssertionError("resume called the model for a cell already recorded")
+
+    monkeypatch.setattr(run_mod, "answer", _never)
+
+    # q001 and q007 are complete across all three personas and arms; q011 is the
+    # pair that never ran and would legitimately need the model.
+    scores = run_mod.run_experiment(
+        repo / "evals" / "spec", repo / "semantic" / "contracts",
+        arms=None, question_ids=["q001", "q007"], resume_from=prior,
+    )
+    assert len(scores) == 18, f"expected 2 questions x 3 personas x 3 arms, got {len(scores)}"
+
+
+def test_a_recorded_card_carries_no_score_to_carry_forward() -> None:
+    """Resume RESCORES rather than trusting a recorded verdict. A score is cheap
+    and deterministic; the card is the expensive artifact. Carrying an old score
+    forward would mix scorer versions in one report -- and three scorer bugs
+    have been found here, so a report spanning two scorers is uninterpretable.
+    """
+    import json
+    from pathlib import Path
+
+    recorded = json.loads(
+        (Path(__file__).parent.parent / "results" / "pilot2" / "cards.json").read_text()
+    )
+    assert "outcome" not in recorded[0]
+    assert "category" not in recorded[0]

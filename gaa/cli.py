@@ -180,7 +180,11 @@ def record_runs(root: Path, out: Path, questions: str, contracts: Path) -> None:
 @click.option("--out", type=click.Path(path_type=Path), default=Path("results"))
 @click.option("--questions", default="", help="comma-separated ids; default all twelve")
 @click.option("--arms", default="", help="comma-separated arms; default all three")
-def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str) -> None:
+@click.option("--resume-from", type=click.Path(path_type=Path), default=None,
+              help="replay recorded cards for cells already run; call the model "
+                   "only for the rest")
+def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str,
+               resume_from: Path | None) -> None:
     """Run the experiment and write the pre-registered report."""
     from gaa.agent.runner import ARM_TOOLS
     from gaa.harness.run import run_experiment, write_results
@@ -190,7 +194,8 @@ def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str
 
     scores = run_experiment(root, contracts, arm_list, question_ids,
                             audit_path=out / "audit.jsonl",
-                            cards_path=out / "cards.json")
+                            cards_path=out / "cards.json",
+                            resume_from=resume_from)
     write_results(scores, arm_list, out)
     click.echo(f"{len(scores)} cells -> {out / 'summary.md'}")
 

@@ -89,8 +89,10 @@ Three arms answer the same questions as the same personas:
 | `strict-contract` | restricted to declared metrics, no joins |
 | `safe-join-contract` | declared metrics, joins carrying compiler-mandatory predicates |
 
-**Partial pilot — 25 of 36 cells**, stopped by an API spending limit. Head to
-head on the two questions every arm could express:
+**Partial pilot — 25 of 36 cells**, stopped by an API spending limit mid-grid.
+Precisely: q001 and q007 are complete across all three personas and all three
+arms; q011 is missing two cells; and a fourth question produced nothing at all.
+Head to head on the two questions every arm could express:
 
 | arm | accuracy | coverage |
 |---|---|---|
@@ -107,6 +109,12 @@ why the [pre-registered reporting schema](docs/adr/0003-three-arms-and-pre-regis
 forbids one.
 
 Full results and their limits: [`results/`](results/).
+
+The run resumes rather than restarting — `gaa experiment --resume-from
+results/pilot2/cards.json` replays the 25 recorded cells and calls the model
+only for the missing ones. Recorded cells are **rescored**, never trusted: a
+score is cheap and deterministic, the card is the expensive artifact, and
+carrying old scores forward would mix scorer versions inside one report.
 
 ---
 
