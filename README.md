@@ -204,8 +204,9 @@ how to report something.
 ## Status
 
 Working and incomplete. The warehouse, governance, tool surface, three agent
-arms, scorer, and chaos suite are built and tested (271 tests; 246 of them need
-no credentials). The experiment
+arms, scorer, and chaos suite are built and tested. A fresh clone with no
+credentials at all runs 288 tests green in under two seconds; the rest skip with
+a stated reason rather than failing. The experiment
 has run partially. The Spider 2.0 adapter was checked and dropped
 ([ADR 0004](docs/adr/0004-spider2-adapter-is-not-feasible.md)). All five chaos
 variants are built and the catch rate is 5 of 5 — and one of them caught a wrong

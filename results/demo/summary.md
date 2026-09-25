@@ -9,7 +9,7 @@ Replaying 25 answer cards recorded against a live Snowflake account. No credenti
 | asked as | rows | total | withheld |
 |---|---|---|---|
 | `FINANCE_GLOBAL` | 3 | 10,826,071.18 | — |
-| `REP_INDIVIDUAL` | 1 | 1,313,794.51 | yes |
+| `REP_INDIVIDUAL` | 1 | 0.00 | yes |
 | `SALES_DIR_EMEA` | 1 | 4,137,843.49 | yes |
 
 Same question. Same SQL shape. Different answers, because the warehouse — not the prompt — decides what each identity may see.
