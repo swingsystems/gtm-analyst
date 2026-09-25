@@ -5,6 +5,8 @@ taxonomy. Scored naively all four read as plain failures, and all four would be
 wrong to score that way -- which is precisely the "technically correct,
 substantively misleading" result ADR 0003 pre-registers against.
 """
+from decimal import Decimal
+
 from gaa.agent.card import AnswerCard
 from gaa.harness.score import Outcome, RefusalKind, score_answer
 from gaa.spec.taxonomy import FailureCategory
@@ -200,3 +202,22 @@ def test_different_numbers_are_still_wrong_under_any_alias():
     """Loosening the comparison must not blind it."""
     aliased_wrong = [{"REGION": r["REGION"], "TOTAL": "1.00"} for r in TRUTH]
     assert _score(_card(aliased_wrong, arm="free-sql")).outcome is Outcome.WRONG
+
+
+def test_totals_are_summed_under_any_column_alias():
+    """The same alias-dependence as the row comparison, left behind in the total
+    calculation. A correct free-SQL answer aliased BOOKINGS_AMOUNT summed to
+    zero and was reported as 'a different definition' -- penalising the same arm
+    in the same direction, which is how it survived the first fix.
+    """
+    from gaa.harness.score import _numeric_total
+
+    assert _numeric_total([{"REGION": "EMEA", "BOOKINGS_AMOUNT": "100.50"}]) == Decimal("100.50")
+    assert _numeric_total([{"REGION": "EMEA", "VALUE": "100.50"}]) == Decimal("100.50")
+    assert _numeric_total([{"X": "not a number"}]) == Decimal(0)
+
+
+def test_a_free_sql_total_is_compared_on_equal_terms():
+    aliased = [{"REGION": r["REGION"], "BOOKINGS_AMOUNT": r["VALUE"]} for r in TRUTH]
+    score = _score(_card(aliased, arm="free-sql"))
+    assert score.totals_match

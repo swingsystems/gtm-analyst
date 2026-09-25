@@ -30,22 +30,36 @@ def run_experiment(
     arms: list[str] | None = None,
     question_ids: list[str] | None = None,
     audit_path: Path | None = None,
+    cards_path: Path | None = None,
 ) -> list[Score]:
-    """Every question x persona x arm. A missing cell is an error, not an omission."""
+    """Every question x persona x arm. A missing cell is an error, not an omission.
+
+    Every answer card is persisted, not just its score. Without that, changing
+    the scorer means re-running every agent, and nobody can check the scoring
+    without paying to reproduce the runs -- which makes the published numbers
+    unverifiable by exactly the readers who should be checking them. Two scorer
+    bugs were found here already; both would have needed a full re-run to
+    confirm.
+    """
     spec: Spec = load_spec(spec_root)
     arms = arms or sorted(ARM_TOOLS)
     questions = [q for q in spec.questions if not question_ids or q.id in question_ids]
 
     scores: list[Score] = []
+    cards: list[dict] = []
     for question in questions:
         for persona_name, persona in spec.personas.items():
             truth = next(e.rows for e in question.expected if e.persona == persona_name)
             for arm in arms:
                 card = answer(question.text, persona, arm, contracts_root,
                               audit_path=audit_path)
+                cards.append({**card.model_dump(), "_question_id": question.id})
                 scores.append(score_answer(
                     card, truth, PERMITTED_REGIONS[persona_name], question.id, ALL_REGIONS
                 ))
+                if cards_path:
+                    cards_path.parent.mkdir(parents=True, exist_ok=True)
+                    cards_path.write_text(json.dumps(cards, indent=2, default=str) + "\n")
     return scores
 
 

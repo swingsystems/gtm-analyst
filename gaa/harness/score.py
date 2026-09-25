@@ -59,24 +59,31 @@ class Score:
     declared_withholding: bool = False
 
 
-def _numeric_total(rows: Rows) -> Decimal:
-    total = Decimal(0)
-    for row in rows:
-        for key, value in row.items():
-            if key.upper() in {"VALUE", "AMOUNT", "TOTAL"}:
-                try:
-                    total += Decimal(value)
-                except (InvalidOperation, TypeError):
-                    continue
-    return total
-
-
 def _is_numeric(value: str) -> bool:
     try:
         Decimal(value)
     except (InvalidOperation, TypeError):
         return False
     return True
+
+
+def _numeric_total(rows: Rows) -> Decimal:
+    """Sum every numeric cell, whatever its column is called.
+
+    An earlier version summed only columns named VALUE, AMOUNT or TOTAL. The
+    contract arms always emit VALUE because the compiler names the measure;
+    free SQL names its own, so a correct answer aliased BOOKINGS_AMOUNT summed
+    to zero and was reported as "a different definition". That is the same
+    alias-dependence already removed from row comparison, left behind here --
+    and because it penalised the same arm in the same direction, the first fix
+    looked like it had worked.
+    """
+    total = Decimal(0)
+    for row in rows:
+        for value in row.values():
+            if _is_numeric(value):
+                total += Decimal(value)
+    return total
 
 
 def _canonical(row: dict[str, str]) -> tuple:

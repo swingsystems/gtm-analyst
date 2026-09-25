@@ -188,6 +188,39 @@ def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str
     question_ids = [q.strip() for q in questions.split(",") if q.strip()] or None
 
     scores = run_experiment(root, contracts, arm_list, question_ids,
-                            audit_path=out / "audit.jsonl")
+                            audit_path=out / "audit.jsonl",
+                            cards_path=out / "cards.json")
     write_results(scores, arm_list, out)
     click.echo(f"{len(scores)} cells -> {out / 'summary.md'}")
+
+
+@cli.command("rescore")
+@click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_SPEC_ROOT)
+@click.option("--cards", type=click.Path(path_type=Path), required=True)
+@click.option("--out", type=click.Path(path_type=Path), default=Path("results"))
+def rescore(root: Path, cards: Path, out: Path) -> None:
+    """Re-score persisted answer cards without re-running any agent.
+
+    This is what makes the published numbers checkable: a reader can change the
+    scorer, re-run this, and see what moves -- without an API key, a warehouse,
+    or the budget to reproduce the runs.
+    """
+    from gaa.agent.card import AnswerCard
+    from gaa.harness.run import ALL_REGIONS, PERMITTED_REGIONS, write_results
+    from gaa.harness.score import score_answer
+
+    spec = load_spec(root)
+    by_id = {q.id: q for q in spec.questions}
+    payload = json.loads(Path(cards).read_text())
+
+    scores, arms = [], []
+    for item in payload:
+        question_id = item.pop("_question_id")
+        card = AnswerCard(**item)
+        if card.arm not in arms:
+            arms.append(card.arm)
+        truth = next(e.rows for e in by_id[question_id].expected if e.persona == card.persona)
+        scores.append(score_answer(card, truth, PERMITTED_REGIONS[card.persona],
+                                   question_id, ALL_REGIONS))
+    write_results(scores, sorted(arms), out)
+    click.echo(f"rescored {len(scores)} cells from {cards} -> {out / 'summary.md'}")
