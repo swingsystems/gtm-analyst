@@ -1,6 +1,6 @@
 # Copy to ~/.dbt/profiles.yml. Values come from the same environment variables
-# that gaa.config reads, so there is one source of truth for connection details.
-gaa:
+# that gtm_analyst.config reads, so there is one source of truth for connection details.
+gtm_analyst:
   target: dev
   outputs:
     dev:
