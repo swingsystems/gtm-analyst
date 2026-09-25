@@ -1,0 +1,1248 @@
+[
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "free-sql",
+    "rows": [
+      {
+        "REGION": "AMER",
+        "TOTAL_BOOKINGS": "2005507.42"
+      },
+      {
+        "REGION": "APAC",
+        "TOTAL_BOOKINGS": "4682720.27"
+      },
+      {
+        "REGION": "EMEA",
+        "TOTAL_BOOKINGS": "4137843.49"
+      }
+    ],
+    "sql": "SELECT REGION, SUM(AMOUNT) AS total_bookings\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3'\n  AND IS_INTERCOMPANY = false\nGROUP BY REGION\nORDER BY REGION",
+    "params": [],
+    "metrics_used": [],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": "01c74cd7-010b-a885-000a-95d700bcf136",
+    "confidence": "high",
+    "confidence_basis": "\u2014 bookings_amount's default definition already excludes intercompany deals, matching the question exactly; query ran directly against V_BOOKINGS with explicit filters for FISCAL_QUARTER='2026-Q3' and IS_INTERCOMPANY=false, and results returned cleanly for all three regions visible to this persona.",
+    "why_not": null,
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "safe-join-contract",
+    "rows": [
+      {
+        "REGION": "AMER",
+        "VALUE": "2005507.42"
+      },
+      {
+        "REGION": "APAC",
+        "VALUE": "4682720.27"
+      },
+      {
+        "REGION": "EMEA",
+        "VALUE": "4137843.49"
+      }
+    ],
+    "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "(none)",
+      "2026-Q3",
+      "false"
+    ],
+    "metrics_used": [
+      "bookings_amount@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": "01c74cd7-010b-a885-000a-95d700bcf13a",
+    "confidence": "high",
+    "confidence_basis": "\u2014 bookings_amount excludes intercompany by default (verified via describe_metric), matching the request exactly, and the query ran cleanly against V_BOOKINGS for the specified period.",
+    "why_not": null,
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "strict-contract",
+    "rows": [
+      {
+        "REGION": "AMER",
+        "VALUE": "2005507.42"
+      },
+      {
+        "REGION": "APAC",
+        "VALUE": "4682720.27"
+      },
+      {
+        "REGION": "EMEA",
+        "VALUE": "4137843.49"
+      }
+    ],
+    "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "(none)",
+      "2026-Q3",
+      "false"
+    ],
+    "metrics_used": [
+      "bookings_amount@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": "01c74cd7-010b-a885-000a-95d700bcf13e",
+    "confidence": "high",
+    "confidence_basis": "\u2014 bookings_amount@1 excludes intercompany by default (IS_INTERCOMPANY = false), matching the request exactly, and the query ran successfully against V_BOOKINGS sliced by region for 2026-Q3.",
+    "why_not": null,
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "free-sql",
+    "rows": [
+      {
+        "REGION": "EMEA",
+        "TOTAL_BOOKINGS": "4137843.49"
+      }
+    ],
+    "sql": "SELECT REGION, SUM(AMOUNT) AS TOTAL_BOOKINGS\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3'\n  AND IS_INTERCOMPANY = false\nGROUP BY REGION",
+    "params": [],
+    "metrics_used": [],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": "01c74cd8-010b-a606-000a-95d700bcdd9a",
+    "confidence": "high",
+    "confidence_basis": "\u2014 the EMEA figure itself is a direct, correctly-filtered sum (IS_INTERCOMPANY = false, FISCAL_QUARTER = 2026-Q3) matching the bookings_amount metric's definition.",
+    "why_not": "Only EMEA region is visible to this persona; bookings for other regions could not be retrieved or included in the total.",
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "safe-join-contract",
+    "rows": [
+      {
+        "REGION": "EMEA",
+        "VALUE": "4137843.49"
+      }
+    ],
+    "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "(none)",
+      "2026-Q3",
+      "false"
+    ],
+    "metrics_used": [
+      "bookings_amount@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": "01c74cd8-010b-a885-000a-95d700bcf19e",
+    "confidence": "high",
+    "confidence_basis": "(for the EMEA figure itself \u2014 intercompany exclusion is the metric's built-in default, correctly applied)",
+    "why_not": "I can only see bookings data for EMEA under my access; any other regions' bookings, if they exist, were withheld by the data access layer, not omitted by choice. I cannot state a \"total across all regions.\"",
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "strict-contract",
+    "rows": [
+      {
+        "REGION": "EMEA",
+        "VALUE": "4137843.49"
+      }
+    ],
+    "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "(none)",
+      "2026-Q3",
+      "false"
+    ],
+    "metrics_used": [
+      "bookings_amount@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": "01c74cd8-010b-a606-000a-95d700bcdde6",
+    "confidence": "high",
+    "confidence_basis": "\u2014 the number comes directly from the `bookings_amount` metric with its standard intercompany exclusion applied, for the exact period requested.",
+    "why_not": "The result only covers the EMEA region, which is what this persona has access to. If bookings for other regions were intended, that data was not visible/returned and is withheld \u2014 I cannot report a \"total across all regions\" since the underlying warehouse only returned the region(s) this persona can see.",
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "REP_INDIVIDUAL",
+    "arm": "free-sql",
+    "rows": [
+      {
+        "REGION": "EMEA",
+        "BOOKINGS_AMOUNT": "1313784.51",
+        "N": "10"
+      }
+    ],
+    "sql": "SELECT REGION, SUM(AMOUNT) AS bookings_amount, COUNT(*) AS n\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3'\n  AND (IS_INTERCOMPANY = FALSE OR IS_INTERCOMPANY IS NULL)\nGROUP BY REGION\nORDER BY REGION",
+    "params": [],
+    "metrics_used": [],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "REP_INDIVIDUAL",
+      "role": "GAA_REP_INDIVIDUAL",
+      "schema": "REP"
+    },
+    "query_id": "01c74cd8-010b-a606-000a-95d700bcddf6",
+    "confidence": "medium",
+    "confidence_basis": "\u2014 the number itself is a straightforward sum with intercompany already excluded (default filter matches what was asked), but confidence on completeness is lower.",
+    "why_not": "This answer only reflects bookings visible to my persona (an individual rep), which appears scoped to EMEA only. A company-wide, all-region total for Q3 2026 would require a persona/role with broader visibility (e.g., a controller or exec view) \u2014 I cannot see or confirm figures for other regions from here.",
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "REP_INDIVIDUAL",
+    "arm": "safe-join-contract",
+    "rows": [
+      {
+        "REGION": "EMEA",
+        "VALUE": "1313784.51"
+      }
+    ],
+    "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "(none)",
+      "2026-Q3",
+      "false"
+    ],
+    "metrics_used": [
+      "bookings_amount@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "REP_INDIVIDUAL",
+      "role": "GAA_REP_INDIVIDUAL",
+      "schema": "REP"
+    },
+    "query_id": "01c74cd9-010b-a606-000a-95d700bcddfa",
+    "confidence": "medium",
+    "confidence_basis": "\u2014 the number itself (EMEA) is computed directly from the metric with the correct default intercompany filter applied, so that part is high confidence. But I flagged it medium overall because of the scope caveat below.",
+    "why_not": "I can only see bookings data permitted to my persona (REP_INDIVIDUAL). Only EMEA rows were returned; if other regions (e.g., AMER, APAC) have bookings in Q3 2026, they are not visible to me and are withheld \u2014 not zero, just inaccessible from my view. So \"total bookings by region\" here reflects only the region(s) my access includes.",
+    "_question_id": "q001"
+  },
+  {
+    "question": "What were total bookings for Q3 2026 by region, excluding intercompany?",
+    "persona": "REP_INDIVIDUAL",
+    "arm": "strict-contract",
+    "rows": [
+      {
+        "REGION": "EMEA",
+        "VALUE": "1313784.51"
+      }
+    ],
+    "sql": "SELECT COALESCE(REGION, ?) AS REGION, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = ?\n  AND IS_INTERCOMPANY = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "(none)",
+      "2026-Q3",
+      "false"
+    ],
+    "metrics_used": [
+      "bookings_amount@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "REP_INDIVIDUAL",
+      "role": "GAA_REP_INDIVIDUAL",
+      "schema": "REP"
+    },
+    "query_id": "01c74cd9-010b-a885-000a-95d700bcf1c2",
+    "confidence": "medium",
+    "confidence_basis": "\u2014 the EMEA figure itself is a direct, correctly-scoped query result (intercompany already excluded by default), but I cannot verify completeness across all regions given my visibility is restricted to what the warehouse returns for my persona.",
+    "why_not": "My access (persona REP_INDIVIDUAL) only returns EMEA rows for this metric \u2014 no other regions appear in the result set, so I cannot confirm whether other regions had bookings or whether they exist but are outside what I'm permitted to see. This is a partial view, not necessarily the global total across all regions.",
+    "_question_id": "q001"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "free-sql",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": null,
+    "confidence": "high",
+    "confidence_basis": "\u2014 the ambiguity itself, not a numeric answer",
+    "why_not": "\"Sell\" doesn't map to a single defined metric; bookings_amount, billings_amount, and revenue_amount are distinct and can diverge significantly in any given quarter. I can compute any (or all) of them for Q3 2026 once you specify which one(s) you want.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "safe-join-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 no computation was performed",
+    "why_not": "The question \"how much did we sell\" does not specify whether it means bookings, billings, or recognised revenue, and these are distinct, non-reconcilable figures in this dataset. Per policy, I withheld picking one until you clarify.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "strict-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 no number computed yet, pending clarification.",
+    "why_not": "The question \"how much did we sell\" doesn't specify whether it means bookings, billings, or recognised revenue, and these are distinct metrics that can diverge significantly in the same quarter. I avoided guessing to prevent giving a misleading number.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "free-sql",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 no calculation was performed since the request is ambiguous.",
+    "why_not": "The question does not specify whether \"sell\" means bookings, billings, or recognized revenue, and these figures differ materially. I withheld picking one to avoid presenting a potentially wrong number as the answer.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "safe-join-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 question does not specify which of three non-equivalent metrics (\"sold\") is intended",
+    "why_not": "\"Sell\" is ambiguous between bookings_amount (contracted/signed value), billings_amount (invoiced value), and revenue_amount (recognised earned value). No number was computed pending clarification.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "strict-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 no number computed",
+    "why_not": "The question doesn't specify whether \"sell\" means bookings (signed value), billings (invoiced value), or revenue (recognised value). These are distinct metrics with different definitions and will produce different numbers for Q3 2026. I did not guess which one was intended.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "REP_INDIVIDUAL",
+    "arm": "free-sql",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "REP_INDIVIDUAL",
+      "role": "GAA_REP_INDIVIDUAL",
+      "schema": "REP"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 no computation was performed since the question is ambiguous.",
+    "why_not": "\"Sell\" could mean bookings_amount, billings_amount, or revenue_amount, which are distinct and non-reconciling metrics. I did not want to guess and present a partial or wrong number as the complete answer.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "REP_INDIVIDUAL",
+    "arm": "safe-join-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "REP_INDIVIDUAL",
+      "role": "GAA_REP_INDIVIDUAL",
+      "schema": "REP"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 no computation was performed; the question needs disambiguation first.",
+    "why_not": "\"Sell\" could map to bookings_amount, billings_amount, or revenue_amount, which are distinct and non-reconcilable figures for the same quarter. Answering with any one of them without confirmation risks presenting a partial or wrong number as complete.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "How much did we sell in Q3 2026?",
+    "persona": "REP_INDIVIDUAL",
+    "arm": "strict-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "REP_INDIVIDUAL",
+      "role": "GAA_REP_INDIVIDUAL",
+      "schema": "REP"
+    },
+    "query_id": null,
+    "confidence": "none",
+    "confidence_basis": "\u2014 no computation was performed",
+    "why_not": "The question \"how much did we sell\" does not specify whether it means bookings, billings, or recognised revenue, and these are distinct, non-reconcilable figures in this dataset. Please specify which metric you want for Q3 2026.",
+    "_question_id": "q007"
+  },
+  {
+    "question": "What were Q3 2026 bookings by account and territory?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "free-sql",
+    "rows": [
+      {
+        "MATCHED_COUNT": "92",
+        "MATCHED_AMOUNT": "10826071.18"
+      }
+    ],
+    "sql": "SELECT COUNT(*) AS matched_count, SUM(CAST(b.AMOUNT AS DECIMAL(18,2))) AS matched_amount\nFROM V_BOOKINGS b\nJOIN V_TERRITORY t\n  ON b.OWNER_REP_ID = t.REP_ID\n AND b.BOOKING_DATE >= t.VALID_FROM\n AND b.BOOKING_DATE < t.VALID_TO\nWHERE b.FISCAL_QUARTER = '2026-Q3'\n  AND b.IS_INTERCOMPANY = 'False'",
+    "params": [],
+    "metrics_used": [],
+    "lineage": [
+      "V_BOOKINGS",
+      "V_TERRITORY"
+    ],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": "01c74cda-010b-a885-000a-95d700bcf1da",
+    "confidence": "high",
+    "confidence_basis": "\u2014 reasoning: all 92 in-scope bookings joined to exactly one territory record with no orphaned rows, and the total reconciles exactly to the unjoined bookings_amount total for the quarter.",
+    "why_not": "None of the data was withheld, but note \"bookings\" here means contracted booking value specifically \u2014 not billings (invoiced) or revenue (recognized), which are different metrics and were not asked for. Also, the full 76-row table was truncated to the top 15 for readability; I can provide the complete list if needed.",
+    "_question_id": "q011"
+  },
+  {
+    "question": "What were Q3 2026 bookings by account and territory?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "safe-join-contract",
+    "rows": [
+      {
+        "ACCOUNT_ID": "ACC00003",
+        "VALUE": "453630.54"
+      },
+      {
+        "ACCOUNT_ID": "ACC00004",
+        "VALUE": "225001.91"
+      },
+      {
+        "ACCOUNT_ID": "ACC00005",
+        "VALUE": "142374.78"
+      },
+      {
+        "ACCOUNT_ID": "ACC00006",
+        "VALUE": "233850.91"
+      },
+      {
+        "ACCOUNT_ID": "ACC00007",
+        "VALUE": "140510.68"
+      },
+      {
+        "ACCOUNT_ID": "ACC00008",
+        "VALUE": "358032.36"
+      },
+      {
+        "ACCOUNT_ID": "ACC00009",
+        "VALUE": "298558.83"
+      },
+      {
+        "ACCOUNT_ID": "ACC00016",
+        "VALUE": "144739.80"
+      },
+      {
+        "ACCOUNT_ID": "ACC00017",
+        "VALUE": "122530.13"
+      },
+      {
+        "ACCOUNT_ID": "ACC00018",
+        "VALUE": "156985.75"
+      },
+      {
+        "ACCOUNT_ID": "ACC00019",
+        "VALUE": "113875.97"
+      },
+      {
+        "ACCOUNT_ID": "ACC00021",
+        "VALUE": "352265.45"
+      },
+      {
+        "ACCOUNT_ID": "ACC00025",
+        "VALUE": "35422.70"
+      },
+      {
+        "ACCOUNT_ID": "ACC00029",
+        "VALUE": "128633.68"
+      },
+      {
+        "ACCOUNT_ID": "ACC00035",
+        "VALUE": "163068.62"
+      },
+      {
+        "ACCOUNT_ID": "ACC00037",
+        "VALUE": "31615.87"
+      },
+      {
+        "ACCOUNT_ID": "ACC00038",
+        "VALUE": "313332.71"
+      },
+      {
+        "ACCOUNT_ID": "ACC00039",
+        "VALUE": "446146.18"
+      },
+      {
+        "ACCOUNT_ID": "ACC00040",
+        "VALUE": "32275.81"
+      },
+      {
+        "ACCOUNT_ID": "ACC00041",
+        "VALUE": "40415.09"
+      },
+      {
+        "ACCOUNT_ID": "ACC00042",
+        "VALUE": "206255.25"
+      },
+      {
+        "ACCOUNT_ID": "ACC00043",
+        "VALUE": "50860.34"
+      },
+      {
+        "ACCOUNT_ID": "ACC00044",
+        "VALUE": "362251.36"
+      },
+      {
+        "ACCOUNT_ID": "ACC00045",
+        "VALUE": "205181.48"
+      },
+      {
+        "ACCOUNT_ID": "ACC00048",
+        "VALUE": "182534.85"
+      },
+      {
+        "ACCOUNT_ID": "ACC00049",
+        "VALUE": "56822.75"
+      },
+      {
+        "ACCOUNT_ID": "ACC00051",
+        "VALUE": "240739.05"
+      },
+      {
+        "ACCOUNT_ID": "ACC00052",
+        "VALUE": "97513.17"
+      },
+      {
+        "ACCOUNT_ID": "ACC00053",
+        "VALUE": "116952.58"
+      },
+      {
+        "ACCOUNT_ID": "ACC00054",
+        "VALUE": "356043.13"
+      },
+      {
+        "ACCOUNT_ID": "ACC00056",
+        "VALUE": "12195.27"
+      },
+      {
+        "ACCOUNT_ID": "ACC00057",
+        "VALUE": "59935.02"
+      },
+      {
+        "ACCOUNT_ID": "ACC00058",
+        "VALUE": "169374.38"
+      },
+      {
+        "ACCOUNT_ID": "ACC00059",
+        "VALUE": "31300.61"
+      },
+      {
+        "ACCOUNT_ID": "ACC00060",
+        "VALUE": "37354.91"
+      },
+      {
+        "ACCOUNT_ID": "ACC00062",
+        "VALUE": "236242.46"
+      },
+      {
+        "ACCOUNT_ID": "ACC00063",
+        "VALUE": "153217.58"
+      },
+      {
+        "ACCOUNT_ID": "ACC00064",
+        "VALUE": "203106.68"
+      },
+      {
+        "ACCOUNT_ID": "ACC00071",
+        "VALUE": "170060.21"
+      },
+      {
+        "ACCOUNT_ID": "ACC00072",
+        "VALUE": "102210.34"
+      },
+      {
+        "ACCOUNT_ID": "ACC00073",
+        "VALUE": "135760.38"
+      },
+      {
+        "ACCOUNT_ID": "ACC00074",
+        "VALUE": "25659.39"
+      },
+      {
+        "ACCOUNT_ID": "ACC00076",
+        "VALUE": "152516.68"
+      },
+      {
+        "ACCOUNT_ID": "ACC00078",
+        "VALUE": "85618.76"
+      },
+      {
+        "ACCOUNT_ID": "ACC00080",
+        "VALUE": "242947.81"
+      },
+      {
+        "ACCOUNT_ID": "ACC00081",
+        "VALUE": "39549.11"
+      },
+      {
+        "ACCOUNT_ID": "ACC00084",
+        "VALUE": "73186.61"
+      },
+      {
+        "ACCOUNT_ID": "ACC00086",
+        "VALUE": "356977.55"
+      },
+      {
+        "ACCOUNT_ID": "ACC00087",
+        "VALUE": "202100.08"
+      },
+      {
+        "ACCOUNT_ID": "ACC00088",
+        "VALUE": "325208.82"
+      },
+      {
+        "ACCOUNT_ID": "ACC00089",
+        "VALUE": "7288.61"
+      },
+      {
+        "ACCOUNT_ID": "ACC00090",
+        "VALUE": "30571.48"
+      },
+      {
+        "ACCOUNT_ID": "ACC00091",
+        "VALUE": "105110.86"
+      },
+      {
+        "ACCOUNT_ID": "ACC00092",
+        "VALUE": "172111.51"
+      },
+      {
+        "ACCOUNT_ID": "ACC00095",
+        "VALUE": "49807.31"
+      },
+      {
+        "ACCOUNT_ID": "ACC00096",
+        "VALUE": "130010.91"
+      },
+      {
+        "ACCOUNT_ID": "ACC00098",
+        "VALUE": "176405.13"
+      },
+      {
+        "ACCOUNT_ID": "ACC00101",
+        "VALUE": "32357.61"
+      },
+      {
+        "ACCOUNT_ID": "ACC00105",
+        "VALUE": "227949.73"
+      },
+      {
+        "ACCOUNT_ID": "ACC00106",
+        "VALUE": "228602.00"
+      },
+      {
+        "ACCOUNT_ID": "ACC00108",
+        "VALUE": "50442.00"
+      },
+      {
+        "ACCOUNT_ID": "ACC00109",
+        "VALUE": "28382.24"
+      },
+      {
+        "ACCOUNT_ID": "ACC00110",
+        "VALUE": "386088.67"
+      },
+      {
+        "ACCOUNT_ID": "ACC00111",
+        "VALUE": "143020.73"
+      },
+      {
+        "ACCOUNT_ID": "ACC00114",
+        "VALUE": "121998.54"
+      },
+      {
+        "ACCOUNT_ID": "ACC00115",
+        "VALUE": "158751.15"
+      },
+      {
+        "ACCOUNT_ID": "ACC00116",
+        "VALUE": "86110.90"
+      },
+      {
+        "ACCOUNT_ID": "ACC00117",
+        "VALUE": "212975.37"
+      },
+      {
+        "ACCOUNT_ID": "ACC00119",
+        "VALUE": "183210.86"
+      }
+    ],
+    "sql": "SELECT ACCOUNT_ID AS ACCOUNT_ID, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nJOIN V_TERRITORY ON V_TERRITORY.REP_ID = V_BOOKINGS.OWNER_REP_ID AND V_BOOKINGS.BOOKING_DATE >= V_TERRITORY.VALID_FROM AND V_BOOKINGS.BOOKING_DATE < V_TERRITORY.VALID_TO\nWHERE FISCAL_QUARTER = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "2026-Q3"
+    ],
+    "metrics_used": [
+      "bookings_by_territory@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS",
+      "V_TERRITORY"
+    ],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": "01c74cdb-010b-a885-000a-95d700bcf1de",
+    "confidence": "none",
+    "confidence_basis": "model did not state one",
+    "why_not": null,
+    "_question_id": "q011"
+  },
+  {
+    "question": "What were Q3 2026 bookings by account and territory?",
+    "persona": "FINANCE_GLOBAL",
+    "arm": "strict-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "FINANCE_GLOBAL",
+      "role": "GAA_FINANCE_GLOBAL",
+      "schema": "FINANCE"
+    },
+    "query_id": null,
+    "confidence": "high",
+    "confidence_basis": "\u2014 the metric contract explicitly lists its allowed dimensions, and account/territory are not among them.",
+    "why_not": "The `bookings_amount` metric (the only bookings metric available) can only be sliced by `region` and `license_type`. No metric in my available set exposes `account` or `territory` as dimensions, so I cannot break bookings down that way. I can provide bookings by region and/or license_type instead, if useful.",
+    "_question_id": "q011"
+  },
+  {
+    "question": "What were Q3 2026 bookings by account and territory?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "free-sql",
+    "rows": [
+      {
+        "ACCOUNT_ID": "ACC00039",
+        "ACCOUNT_NAME": "ACCOUNT-0a308c25",
+        "BOOKINGS_AMOUNT": "446146.18",
+        "N_DEALS": "2"
+      },
+      {
+        "ACCOUNT_ID": "ACC00110",
+        "ACCOUNT_NAME": "ACCOUNT-9147fd3c",
+        "BOOKINGS_AMOUNT": "386088.67",
+        "N_DEALS": "2"
+      },
+      {
+        "ACCOUNT_ID": "ACC00038",
+        "ACCOUNT_NAME": "ACCOUNT-c18d12b1",
+        "BOOKINGS_AMOUNT": "313332.71",
+        "N_DEALS": "2"
+      },
+      {
+        "ACCOUNT_ID": "ACC00009",
+        "ACCOUNT_NAME": "ACCOUNT-74dd4df4",
+        "BOOKINGS_AMOUNT": "298558.83",
+        "N_DEALS": "3"
+      },
+      {
+        "ACCOUNT_ID": "ACC00080",
+        "ACCOUNT_NAME": "ACCOUNT-ce7afa14",
+        "BOOKINGS_AMOUNT": "242947.81",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00051",
+        "ACCOUNT_NAME": "ACCOUNT-37820c91",
+        "BOOKINGS_AMOUNT": "240739.05",
+        "N_DEALS": "2"
+      },
+      {
+        "ACCOUNT_ID": "ACC00062",
+        "ACCOUNT_NAME": "ACCOUNT-2105d521",
+        "BOOKINGS_AMOUNT": "236242.46",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00106",
+        "ACCOUNT_NAME": "ACCOUNT-abaf6432",
+        "BOOKINGS_AMOUNT": "228602.00",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00004",
+        "ACCOUNT_NAME": "ACCOUNT-0547e0e7",
+        "BOOKINGS_AMOUNT": "225001.91",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00087",
+        "ACCOUNT_NAME": "ACCOUNT-381dd1aa",
+        "BOOKINGS_AMOUNT": "202100.08",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00048",
+        "ACCOUNT_NAME": "ACCOUNT-da9aa072",
+        "BOOKINGS_AMOUNT": "182534.85",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00088",
+        "ACCOUNT_NAME": "ACCOUNT-586d2031",
+        "BOOKINGS_AMOUNT": "179704.98",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00035",
+        "ACCOUNT_NAME": "ACCOUNT-377019eb",
+        "BOOKINGS_AMOUNT": "163068.62",
+        "N_DEALS": "3"
+      },
+      {
+        "ACCOUNT_ID": "ACC00063",
+        "ACCOUNT_NAME": "ACCOUNT-1481c4b3",
+        "BOOKINGS_AMOUNT": "153217.58",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00016",
+        "ACCOUNT_NAME": "ACCOUNT-d1bc52c6",
+        "BOOKINGS_AMOUNT": "144739.80",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00091",
+        "ACCOUNT_NAME": "ACCOUNT-a628912f",
+        "BOOKINGS_AMOUNT": "105110.86",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00052",
+        "ACCOUNT_NAME": "ACCOUNT-a81e8bbf",
+        "BOOKINGS_AMOUNT": "97513.17",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00084",
+        "ACCOUNT_NAME": "ACCOUNT-c23a6861",
+        "BOOKINGS_AMOUNT": "73186.61",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00095",
+        "ACCOUNT_NAME": "ACCOUNT-f0b38d68",
+        "BOOKINGS_AMOUNT": "49807.31",
+        "N_DEALS": "2"
+      },
+      {
+        "ACCOUNT_ID": "ACC00041",
+        "ACCOUNT_NAME": "ACCOUNT-343d28cb",
+        "BOOKINGS_AMOUNT": "40415.09",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00081",
+        "ACCOUNT_NAME": "ACCOUNT-328c6dee",
+        "BOOKINGS_AMOUNT": "39549.11",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00040",
+        "ACCOUNT_NAME": "ACCOUNT-37316f2d",
+        "BOOKINGS_AMOUNT": "32275.81",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00059",
+        "ACCOUNT_NAME": "ACCOUNT-f70f1c0a",
+        "BOOKINGS_AMOUNT": "31300.61",
+        "N_DEALS": "1"
+      },
+      {
+        "ACCOUNT_ID": "ACC00074",
+        "ACCOUNT_NAME": "ACCOUNT-10b1e362",
+        "BOOKINGS_AMOUNT": "25659.39",
+        "N_DEALS": "1"
+      }
+    ],
+    "sql": "SELECT ACCOUNT_ID, ACCOUNT_NAME, SUM(AMOUNT) AS bookings_amount, COUNT(*) AS n_deals\nFROM V_BOOKINGS\nWHERE FISCAL_QUARTER = '2026-Q3' AND IS_INTERCOMPANY='False'\nGROUP BY ACCOUNT_ID, ACCOUNT_NAME\nORDER BY bookings_amount DESC",
+    "params": [],
+    "metrics_used": [],
+    "lineage": [
+      "V_BOOKINGS"
+    ],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": "01c74cdd-010b-a606-000a-95d700bcde1a",
+    "confidence": "medium",
+    "confidence_basis": "\u2014 the account-level total and breakdown are solid, but the territory cut is knowingly incomplete due to a mid-quarter rep/territory reassignment that breaks clean attribution for ~45% of the quarter's value.",
+    "why_not": "(1) Scope \u2014 as SALES_DIR_EMEA I can only see EMEA bookings; no other regions are visible to compute a global figure. (2) Territory \u2014 $1,842,355.31 of Q3 bookings (deals dated \u22652026\u201108\u201115) can't be validly mapped to a territory because the territory-to-rep assignment changed mid-quarter and the booking records reference the pre-change rep, who no longer held any territory in that window.",
+    "_question_id": "q011"
+  },
+  {
+    "question": "What were Q3 2026 bookings by account and territory?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "safe-join-contract",
+    "rows": [
+      {
+        "ACCOUNT_ID": "ACC00009",
+        "VALUE": "243994.94"
+      },
+      {
+        "ACCOUNT_ID": "ACC00035",
+        "VALUE": "163068.62"
+      },
+      {
+        "ACCOUNT_ID": "ACC00038",
+        "VALUE": "173669.84"
+      },
+      {
+        "ACCOUNT_ID": "ACC00039",
+        "VALUE": "235293.83"
+      },
+      {
+        "ACCOUNT_ID": "ACC00040",
+        "VALUE": "32275.81"
+      },
+      {
+        "ACCOUNT_ID": "ACC00051",
+        "VALUE": "240739.05"
+      },
+      {
+        "ACCOUNT_ID": "ACC00059",
+        "VALUE": "31300.61"
+      },
+      {
+        "ACCOUNT_ID": "ACC00063",
+        "VALUE": "153217.58"
+      },
+      {
+        "ACCOUNT_ID": "ACC00080",
+        "VALUE": "242947.81"
+      },
+      {
+        "ACCOUNT_ID": "ACC00081",
+        "VALUE": "39549.11"
+      },
+      {
+        "ACCOUNT_ID": "ACC00087",
+        "VALUE": "202100.08"
+      },
+      {
+        "ACCOUNT_ID": "ACC00088",
+        "VALUE": "179704.98"
+      },
+      {
+        "ACCOUNT_ID": "ACC00091",
+        "VALUE": "105110.86"
+      },
+      {
+        "ACCOUNT_ID": "ACC00095",
+        "VALUE": "23913.06"
+      },
+      {
+        "ACCOUNT_ID": "ACC00106",
+        "VALUE": "228602.00"
+      }
+    ],
+    "sql": "SELECT ACCOUNT_ID AS ACCOUNT_ID, SUM(AMOUNT) AS VALUE\nFROM V_BOOKINGS\nJOIN V_TERRITORY ON V_TERRITORY.REP_ID = V_BOOKINGS.OWNER_REP_ID AND V_BOOKINGS.BOOKING_DATE >= V_TERRITORY.VALID_FROM AND V_BOOKINGS.BOOKING_DATE < V_TERRITORY.VALID_TO\nWHERE FISCAL_QUARTER = ?\nGROUP BY 1\nORDER BY 1",
+    "params": [
+      "2026-Q3"
+    ],
+    "metrics_used": [
+      "bookings_by_territory@1"
+    ],
+    "lineage": [
+      "V_BOOKINGS",
+      "V_TERRITORY"
+    ],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": "01c74cde-010b-a885-000a-95d700bcf206",
+    "confidence": "medium",
+    "confidence_basis": "\u2014 the account-level bookings figures came back cleanly and total correctly, but the territory dimension itself could not be resolved.",
+    "why_not": "The territory (and even plain region) dimension on `bookings_by_territory@1` cannot be queried \u2014 it fails with an \"ambiguous column name 'REGION'\" SQL compilation error caused by the mandatory join to the territory validity table, which also has a REGION column. This is a metric/query defect, not a permissions restriction, but it means the territory portion of your question is unanswered.",
+    "_question_id": "q011"
+  },
+  {
+    "question": "What were Q3 2026 bookings by account and territory?",
+    "persona": "SALES_DIR_EMEA",
+    "arm": "strict-contract",
+    "rows": [],
+    "sql": null,
+    "params": [],
+    "metrics_used": [],
+    "lineage": [],
+    "context": {
+      "persona": "SALES_DIR_EMEA",
+      "role": "GAA_SALES_DIR_EMEA",
+      "schema": "EMEA"
+    },
+    "query_id": null,
+    "confidence": "high",
+    "confidence_basis": "\u2014 this is based directly on the metric's declared contract, not a guess.",
+    "why_not": "The bookings_amount metric does not declare \"account\" or \"territory\" as sliceable dimensions (only region and license_type are available), so this specific breakdown cannot be produced. Region could be offered as a partial, coarser substitute if that's acceptable.",
+    "_question_id": "q011"
+  },
+  {
+    "question": "What were Q3 2026 bookings by account and territory?",
+    "persona": "REP_INDIVIDUAL",
+    "arm": "free-sql",
+    "rows": [
+      {
+        "ACCOUNT_ID": "ACC00091",
+        "ACCOUNT_NAME": "ACCOUNT-a628912f",
+        "TERRITORY_ID": "TER001",
+        "TERRITORY_REGION": "EMEA",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-07-22",
+        "AMOUNT": "105110.86"
+      },
+      {
+        "ACCOUNT_ID": "ACC00035",
+        "ACCOUNT_NAME": "ACCOUNT-377019eb",
+        "TERRITORY_ID": "TER001",
+        "TERRITORY_REGION": "EMEA",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-07-26",
+        "AMOUNT": "92350.66"
+      },
+      {
+        "ACCOUNT_ID": "ACC00051",
+        "ACCOUNT_NAME": "ACCOUNT-37820c91",
+        "TERRITORY_ID": "TER001",
+        "TERRITORY_REGION": "EMEA",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-07-30",
+        "AMOUNT": "190893.94"
+      },
+      {
+        "ACCOUNT_ID": "ACC00051",
+        "ACCOUNT_NAME": "ACCOUNT-37820c91",
+        "TERRITORY_ID": "TER001",
+        "TERRITORY_REGION": "EMEA",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-08-09",
+        "AMOUNT": "49845.11"
+      },
+      {
+        "ACCOUNT_ID": "ACC00035",
+        "ACCOUNT_NAME": "ACCOUNT-377019eb",
+        "TERRITORY_ID": "TER001",
+        "TERRITORY_REGION": "EMEA",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-08-13",
+        "AMOUNT": "42726.16"
+      },
+      {
+        "ACCOUNT_ID": "ACC00035",
+        "ACCOUNT_NAME": "ACCOUNT-377019eb",
+        "TERRITORY_ID": "TER001",
+        "TERRITORY_REGION": "EMEA",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-08-13",
+        "AMOUNT": "27991.80"
+      },
+      {
+        "ACCOUNT_ID": "ACC00062",
+        "ACCOUNT_NAME": "ACCOUNT-2105d521",
+        "TERRITORY_ID": "TER012",
+        "TERRITORY_REGION": "APAC",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-08-26",
+        "AMOUNT": "236242.46"
+      },
+      {
+        "ACCOUNT_ID": "ACC00110",
+        "ACCOUNT_NAME": "ACCOUNT-9147fd3c",
+        "TERRITORY_ID": "TER012",
+        "TERRITORY_REGION": "APAC",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-08-29",
+        "AMOUNT": "151525.67"
+      },
+      {
+        "ACCOUNT_ID": "ACC00110",
+        "ACCOUNT_NAME": "ACCOUNT-9147fd3c",
+        "TERRITORY_ID": "TER012",
+        "TERRITORY_REGION": "APAC",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-08-30",
+        "AMOUNT": "234563.00"
+      },
+      {
+        "ACCOUNT_ID": "ACC00073",
+        "ACCOUNT_NAME": "ACCOUNT-f5ae64de",
+        "TERRITORY_ID": "TER012",
+        "TERRITORY_REGION": "APAC",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "True",
+        "BOOKING_DATE": "2026-09-03",
+        "AMOUNT": "135760.38"
+      },
+      {
+        "ACCOUNT_ID": "ACC00048",
+        "ACCOUNT_NAME": "ACCOUNT-da9aa072",
+        "TERRITORY_ID": "TER012",
+        "TERRITORY_REGION": "APAC",
+        "BOOKING_REGION": "EMEA",
+        "IS_INTERCOMPANY": "False",
+        "BOOKING_DATE": "2026-09-07",
+        "AMOUNT": "182534.85"
+      }
+    ],
+    "sql": "SELECT\n  b.ACCOUNT_ID,\n  a.ACCOUNT_NAME,\n  t.TERRITORY_ID,\n  t.REGION AS TERRITORY_REGION,\n  b.REGION AS BOOKING_REGION,\n  b.IS_INTERCOMPANY,\n  b.BOOKING_DATE,\n  b.AMOUNT\nFROM V_BOOKINGS b\nLEFT JOIN V_ACCOUNT a ON a.ACCOUNT_ID = b.ACCOUNT_ID\nLEFT JOIN V_TERRITORY t\n  ON b.BOOKING_DATE >= t.VALID_FROM AND b.BOOKING_DATE < t.VALID_TO\nWHERE b.FISCAL_QUARTER = '2026-Q3'\nORDER BY b.BOOKING_DATE",
+    "params": [],
+    "metrics_used": [],
+    "lineage": [
+      "V_BOOKINGS",
+      "V_ACCOUNT",
+      "V_TERRITORY"
+    ],
+    "context": {
+      "persona": "REP_INDIVIDUAL",
+      "role": "GAA_REP_INDIVIDUAL",
+      "schema": "REP"
+    },
+    "query_id": "01c74cdf-010b-a885-000a-95d700bcf21a",
+    "confidence": "medium",
+    "confidence_basis": "WHY_NOT: The numbers above are complete for the data this persona (an individual rep) has access to, but the warehouse enforces row-level scoping so I cannot confirm or rule out bookings by other reps/territories that would belong to a full \"by account and territory\" company-wide answer. If you need the complete cross-territory picture, that requires a persona/role with broader visibility (e.g., sales-ops or finance).",
+    "why_not": "The numbers above are complete for the data this persona (an individual rep) has access to, but the warehouse enforces row-level scoping so I cannot confirm or rule out bookings by other reps/territories that would belong to a full \"by account and territory\" company-wide answer. If you need the complete cross-territory picture, that requires a persona/role with broader visibility (e.g., sales-ops or finance).",
+    "_question_id": "q011"
+  }
+]
