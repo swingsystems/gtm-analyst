@@ -224,3 +224,19 @@ def rescore(root: Path, cards: Path, out: Path) -> None:
                                    question_id, ALL_REGIONS))
     write_results(scores, sorted(arms), out)
     click.echo(f"rescored {len(scores)} cells from {cards} -> {out / 'summary.md'}")
+
+
+@cli.command("demo")
+@click.option("--cards", type=click.Path(path_type=Path),
+              default=Path("results/pilot2/cards.json"))
+@click.option("--out", type=click.Path(path_type=Path), default=Path("results/demo"))
+def demo(cards: Path, out: Path) -> None:
+    """Replay recorded runs. No Snowflake account, no API key, no network."""
+    from gaa.demo.run import DemoError, run_demo
+
+    try:
+        result = run_demo(cards, out)
+    except DemoError as exc:
+        click.echo(f"demo error: {exc}", err=True)
+        sys.exit(1)
+    click.echo(f"replayed {result.total_cards} recorded cards -> {out / 'summary.md'}")

@@ -67,23 +67,40 @@ def _is_numeric(value: str) -> bool:
     return True
 
 
-def _numeric_total(rows: Rows) -> Decimal:
-    """Sum every numeric cell, whatever its column is called.
+def _row_measures(row: dict[str, str]) -> list[Decimal]:
+    return [Decimal(v) for v in row.values() if _is_numeric(v)]
 
-    An earlier version summed only columns named VALUE, AMOUNT or TOTAL. The
-    contract arms always emit VALUE because the compiler names the measure;
-    free SQL names its own, so a correct answer aliased BOOKINGS_AMOUNT summed
-    to zero and was reported as "a different definition". That is the same
-    alias-dependence already removed from row comparison, left behind here --
-    and because it penalised the same arm in the same direction, the first fix
-    looked like it had worked.
+
+def _numeric_total(rows: Rows) -> Decimal:
+    """Total the measure column, or return zero when there is no single measure.
+
+    Two bugs live here, in opposite directions, and both shipped.
+
+    Summing only columns named VALUE, AMOUNT or TOTAL penalised free SQL, which
+    names its own columns: a correct answer aliased BOOKINGS_AMOUNT summed to
+    zero and was reported as a different definition.
+
+    Summing every numeric cell instead added a count column to the money. An
+    agent returning {BOOKINGS_AMOUNT: 1313784.51, N: 10} totalled 1313794.51,
+    which is confidently wrong by exactly the row count.
+
+    So: sum the numeric value when a row has exactly one, and refuse to guess
+    when it has several. `total_is_ambiguous` reports that, and the caller must
+    not treat an ambiguous zero as a real total.
     """
     total = Decimal(0)
     for row in rows:
-        for value in row.values():
-            if _is_numeric(value):
-                total += Decimal(value)
+        measures = _row_measures(row)
+        if len(measures) != 1:
+            return Decimal(0)
+        total += measures[0]
     return total
+
+
+def total_is_ambiguous(rows: Rows) -> bool:
+    """True when any row carries more than one numeric column, so no single
+    measure can be identified without guessing which one was meant."""
+    return any(len(_row_measures(row)) != 1 for row in rows if row)
 
 
 def _canonical(row: dict[str, str]) -> tuple:
@@ -175,7 +192,9 @@ def score_answer(
                      "answered confidently where the correct response was none")
 
     answer_total, truth_total = _numeric_total(card.rows), _numeric_total(truth)
-    totals_match = answer_total == truth_total
+    ambiguous = total_is_ambiguous(card.rows) or total_is_ambiguous(truth)
+    # An ambiguous total is zero, and two zeros must never read as agreement.
+    totals_match = (not ambiguous) and answer_total == truth_total
     shape_matches = len(card.rows) == len(truth)
     is_superset = truth_set < answer_set
 
@@ -192,11 +211,17 @@ def score_answer(
                      "miscomputed -- nothing was dropped or duplicated",
                      totals_match=True, shape_matches=False)
 
-    if truth_total and answer_total / truth_total >= _FANOUT_MIN_RATIO:
+    if not ambiguous and truth_total and answer_total / truth_total >= _FANOUT_MIN_RATIO:
         ratio = (answer_total / truth_total).quantize(Decimal("0.01"))
         return build(Outcome.WRONG, FailureCategory.FANOUT_DOUBLE_COUNT, RefusalKind.NONE,
                      f"total inflated {ratio}x, consistent with an unconstrained join",
                      shape_matches=shape_matches)
+
+    if shape_matches and ambiguous:
+        return build(Outcome.WRONG, FailureCategory.WRONG_COLUMN, RefusalKind.NONE,
+                     "shape matches but the answer carries several numeric columns, so "
+                     "no single measure can be compared without guessing which was meant",
+                     shape_matches=True)
 
     if shape_matches:
         return build(Outcome.WRONG, FailureCategory.WRONG_COLUMN, RefusalKind.NONE,

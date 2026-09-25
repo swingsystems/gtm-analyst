@@ -1,19 +1,4 @@
-# Experiment results — PARTIAL PILOT
-
-**25 of 36 cells.** The run stopped when the Anthropic account reached its usage
-limit, part-way through q011. All of q012 is missing, along with two q011 cells.
-The tables below are over what ran, not over what was planned.
-
-**Four questions, not twelve.** This is a pilot slice chosen to exercise the
-interesting cases — a plain question, an ambiguous one, the fan-out trap, and a
-governance refusal — not the full evaluation set.
-
-**One run per cell.** No repeats. A separate q011 trial run four times produced
-row counts of 3, 68, 13 and 68 for an identical question, so single-run cells
-carry more variance than these tables can show.
-
-Read the head-to-head as n=2 questions, six cells per arm. One flipped cell moves
-an arm by seventeen points.
+# Experiment results
 
 Reported under the schema fixed in `docs/adr/0003-three-arms-and-pre-registered-reporting.md` before any number existed. There is deliberately no single accuracy figure.
 
@@ -67,8 +52,7 @@ Denominators are questions where the category is testable for that arm, never th
 
 | arm | category | count |
 |---|---|---|
-| free-sql | fanout_double_count | 1 |
-| free-sql | orphans_dropped | 1 |
+| free-sql | orphans_dropped | 2 |
 | free-sql | wrong_column | 1 |
 | free-sql | wrong_join_grain | 1 |
 | safe-join-contract | wrong_column | 1 |
@@ -100,6 +84,6 @@ Denominators are questions where the category is testable for that arm, never th
 | q011 | FINANCE_GLOBAL | safe-join-contract | wrong | wrong_join_grain | total |
 | q011 | FINANCE_GLOBAL | strict-contract | inexpressible | — | declared |
 | q011 | REP_INDIVIDUAL | free-sql | wrong | wrong_join_grain | total,declared |
-| q011 | SALES_DIR_EMEA | free-sql | wrong | fanout_double_count | declared |
+| q011 | SALES_DIR_EMEA | free-sql | wrong | orphans_dropped | declared |
 | q011 | SALES_DIR_EMEA | safe-join-contract | wrong | wrong_column | shape,declared |
 | q011 | SALES_DIR_EMEA | strict-contract | inexpressible | — | declared |

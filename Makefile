@@ -1,4 +1,4 @@
-.PHONY: setup spec-validate lint test verify-integrity
+.PHONY: setup spec-validate lint test verify-integrity demo
 
 setup:
 	uv sync --all-extras
@@ -18,3 +18,8 @@ verify-integrity:
 .PHONY: governance
 governance:
 	uv run python scripts/apply_governance.py
+
+demo:  ## No account, no key, no network. Start here.
+	uv run gaa demo
+	@echo ""
+	@echo "  open results/demo/summary.md"

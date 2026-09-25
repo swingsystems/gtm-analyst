@@ -221,3 +221,36 @@ def test_a_free_sql_total_is_compared_on_equal_terms():
     aliased = [{"REGION": r["REGION"], "BOOKINGS_AMOUNT": r["VALUE"]} for r in TRUTH]
     score = _score(_card(aliased, arm="free-sql"))
     assert score.totals_match
+
+
+def test_a_count_column_is_not_added_to_the_money():
+    """Shipped, and it corrupted reported results. An agent returned
+    {BOOKINGS_AMOUNT: 1313784.51, N: 10} and the total came out 1313794.51 --
+    confidently wrong by exactly the row count. Removing alias-dependence by
+    discarding all column semantics also discarded the difference between a
+    measure and a count."""
+    from gaa.harness.score import _numeric_total, total_is_ambiguous
+
+    rows = [{"REGION": "EMEA", "BOOKINGS_AMOUNT": "1313784.51", "N": "10"}]
+    assert total_is_ambiguous(rows)
+    assert _numeric_total(rows) == Decimal(0)
+
+
+def test_an_ambiguous_total_never_reads_as_agreement():
+    """Both sides total to zero because neither has an identifiable measure.
+    Two zeros must not be reported as matching totals -- that would claim
+    agreement between numbers nobody computed. Identical rows are a different
+    case and correctly match on content, not on total."""
+    answer = [{"REGION": "EMEA", "VALUE": "1.00", "N": "2"}]
+    truth = [{"REGION": "EMEA", "VALUE": "999.00", "N": "7"}]
+    score = _score(_card(answer), truth=truth)
+    assert not score.totals_match
+    assert "guessing" in score.detail or "several numeric" in score.detail
+
+
+def test_a_single_measure_still_totals_normally():
+    from gaa.harness.score import _numeric_total, total_is_ambiguous
+
+    rows = [{"REGION": "EMEA", "BOOKINGS_AMOUNT": "100.50"}]
+    assert not total_is_ambiguous(rows)
+    assert _numeric_total(rows) == Decimal("100.50")
