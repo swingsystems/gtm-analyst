@@ -11,6 +11,6 @@ jobs:
           fetch-depth: 0  # full history: test_spec_predates_models inspects git log
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --all-extras
-      - run: uv run ruff check gaa tests
+      - run: uv run ruff check gaa tests scripts
       - run: uv run gaa spec-validate --root evals/spec
       - run: uv run pytest -v

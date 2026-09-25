@@ -1,6 +1,6 @@
 # Safe, auditable analytics agents on Snowflake
 
-**Deploy it in a day. Prove it in CI.**
+**Deploy it in a day. Prove it against your own warehouse.**
 
 An analytics agent that can query your warehouse can also leak it.
 

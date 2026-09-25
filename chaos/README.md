@@ -1,13 +1,19 @@
 # Deliberately broken model variants
 
 Each file replaces one dbt model with a version carrying a known defect. The
-harness must catch every one; CI requires a 100% catch rate.
+harness must catch every one.
+
+**These do not run in CI.** Each variant rebuilds models against a live
+Snowflake account, and CI holds no credentials, so 7 of the 8 chaos tests skip
+there. The catch rate below was measured locally on 2026-09-25 and is a
+point-in-time measurement, not a gate. Wiring it to a CI warehouse is listed in
+the README as outstanding.
 
 An evaluation suite that has never been seen to fail is not evidence. These
 exist so the catch rate is a measured number rather than an assumption — and
 because this project has already shipped two of these bugs for real.
 
-## Built and exercised in CI
+## Built and exercised (locally, against a live account)
 
 | Variant | Defect | Caught by |
 |---|---|---|

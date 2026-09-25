@@ -120,10 +120,16 @@ Not encrypted, not rotated, not permission-scoped.
 trusts its transport. Fine for stdio and a local client; it would need real
 authentication before being exposed over a network.
 
-**6. Supply chain of the evaluation path.** CI runs the chaos suite and the
-evaluation on every PR. A malicious contributor able to modify a chaos variant
-or a reference query could weaken the harness while leaving it green. Branch
-protection would mitigate; not configured.
+**6. The evaluation path is not gated at all.** This was previously written as
+if CI ran the chaos suite and the evaluation on every PR. It does not: CI holds
+no Snowflake credentials, so every live test skips and 7 of the 8 chaos tests
+never execute there. The catch rate in `chaos/README.md` is a local measurement,
+not a gate.
+
+So the supply-chain concern is worse than first stated. A contributor able to
+modify a chaos variant or a reference query would weaken the harness and CI
+would stay green -- not because it was fooled, but because it never looked.
+Closing this needs a CI service account and branch protection. Neither exists.
 
 **7. Cost is uncontrolled.** Nothing caps the credits an agent may spend. A
 pathological question could scan large tables repeatedly. The real experiment run
