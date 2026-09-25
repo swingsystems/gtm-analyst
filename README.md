@@ -188,9 +188,10 @@ agent ──► tool surface ──► persona service user ──► GAA.<PERSO
    *before* the models they evaluate, and let the commit order prove it. A test
    asserts that ordering in this repo.
 
-Also worth reading: the [threat model](docs/threat-model.md), which lists seven
-accepted risks, what has since been closed, and what has not; and the
-[90-day rollout plan](docs/rollout-plan.md).
+Also worth reading: the [threat model](docs/threat-model.md), which lists the
+accepted risks, what has since been closed, and the residual on each; the
+[90-day rollout plan](docs/rollout-plan.md); and [SECURITY.md](SECURITY.md) for
+how to report something.
 
 ## Status
 
