@@ -371,16 +371,7 @@
       "GAA_SALES_DIR_EMEA"
     ]
   ],
-  "user:GAA_SVC_FINANCE_GLOBAL": [
-    "GAA_FINANCE_GLOBAL"
-  ],
-  "user:GAA_SVC_REP_INDIVIDUAL": [
-    "GAA_REP_INDIVIDUAL"
-  ],
-  "user:GAA_SVC_SALES_DIR_EMEA": [
-    "GAA_SALES_DIR_EMEA"
-  ],
-  "user:GAA_OPERATOR": [
+  "user:<operator>": [
     "ACCOUNTADMIN",
     "BOOKS_READER",
     "GAA_LOADER",
@@ -395,5 +386,14 @@
     "None",
     "None",
     "ORGADMIN"
+  ],
+  "user:GAA_SVC_FINANCE_GLOBAL": [
+    "GAA_FINANCE_GLOBAL"
+  ],
+  "user:GAA_SVC_REP_INDIVIDUAL": [
+    "GAA_REP_INDIVIDUAL"
+  ],
+  "user:GAA_SVC_SALES_DIR_EMEA": [
+    "GAA_SALES_DIR_EMEA"
   ]
 }

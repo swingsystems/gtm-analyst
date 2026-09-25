@@ -27,6 +27,10 @@ from gtm_analyst.config import load_settings
 from gtm_analyst.connection import session_for_persona
 from gtm_analyst.spec.models import Persona
 
+# The operator is whoever SNOWFLAKE_USER names. Recorded under a stable key so
+# the committed baseline carries no username.
+OPERATOR_KEY = "user:<operator>"
+
 ROLES = ("GAA_LOADER", "GAA_FINANCE_GLOBAL", "GAA_SALES_DIR_EMEA", "GAA_REP_INDIVIDUAL")
 PERSONAS = ("FINANCE_GLOBAL", "SALES_DIR_EMEA", "REP_INDIVIDUAL")
 
@@ -101,7 +105,12 @@ def main(out: Path | None, baseline: Path | None) -> None:
                 str(row.get("role", "")) for row in
                 _rows(cursor, f"SHOW GRANTS TO USER {user}")
             )
-        snapshot[f"user:{settings.snowflake_user}"] = sorted(
+        # Keyed by a placeholder, not the operator's actual username. Two
+        # reasons, and both matter: the baseline is committed to a public
+        # repository, and a baseline naming one account's operator cannot be
+        # compared against anybody else's. Drift detection is unaffected
+        # because both sides normalise identically.
+        snapshot[OPERATOR_KEY] = sorted(
             str(row.get("role", "")) for row in
             _rows(cursor, f"SHOW GRANTS TO USER {settings.snowflake_user}")
         )
