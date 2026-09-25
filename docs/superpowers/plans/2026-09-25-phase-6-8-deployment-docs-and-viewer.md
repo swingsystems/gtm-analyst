@@ -36,10 +36,10 @@ Inline throughout. These are judgment-heavy documents and integration work, and 
 | Secret scanner printed 40 chars of a live key | Plan 2 | Fixed; key should be rotated |
 | Free-SQL and contract arms share one tool surface | Task 6, Plan 2 | **Accepted risk** — experiment validity, not data |
 
-- [ ] **Step 1: Enumerate failure modes**, each mapped to the control that exists and the test that proves it: prompt injection reaching the tool surface; tool parameter tampering; role escalation; exfiltration via aggregates; metric-contract tampering as a data-definition path; audit-log leakage of SQL and schema shape; supply-chain compromise of the CI evaluation path.
-- [ ] **Step 2: List every uncontrolled mode as accepted risk with its reason.** A threat model claiming complete coverage is not credible.
-- [ ] **Step 3: Record what secure views do and do not hide** — the definition is concealed from non-owners, which is why lineage is build-time metadata.
-- [ ] **Step 4: Commit** `docs: threat model, with the findings this build actually produced`
+- [x] **Step 1: Enumerate failure modes**, each mapped to the control that exists and the test that proves it: prompt injection reaching the tool surface; tool parameter tampering; role escalation; exfiltration via aggregates; metric-contract tampering as a data-definition path; audit-log leakage of SQL and schema shape; supply-chain compromise of the CI evaluation path.
+- [x] **Step 2: List every uncontrolled mode as accepted risk with its reason.** A threat model claiming complete coverage is not credible.
+- [x] **Step 3: Record what secure views do and do not hide** — the definition is concealed from non-owners, which is why lineage is build-time metadata.
+- [x] **Step 4: Commit** `docs: threat model, with the findings this build actually produced`
 
 ---
 
@@ -49,11 +49,11 @@ Inline throughout. These are judgment-heavy documents and integration work, and 
 
 The management artifact. A solo repo cannot prove second-line leadership; a rollout plan with staffing, metrics and rollback criteria is the closest honest substitute, and it is what a director-level reader is actually equipped to judge.
 
-- [ ] **Step 1: Phase 1, days 1–30** — sandbox deploy, red-team the boundary, establish baseline leak and over-block rates before anyone trusts an answer.
-- [ ] **Step 2: Phase 2, days 31–60** — limited personas against the ten highest-value questions, humans verify every answer, eval runs on every model change.
-- [ ] **Step 3: Phase 3, days 61–90** — expand domains, add monitoring and an incident process for a wrong answer that reached a decision.
-- [ ] **Step 4: Staffing shape, success metrics** (governance leak rate, over-block rate, eval pass rate, time-to-answer, credit cost per answer), **risk register, and explicit stop/rollback criteria.**
-- [ ] **Step 5: Commit** `docs: 90-day rollout plan`
+- [x] **Step 1: Phase 1, days 1–30** — sandbox deploy, red-team the boundary, establish baseline leak and over-block rates before anyone trusts an answer.
+- [x] **Step 2: Phase 2, days 31–60** — limited personas against the ten highest-value questions, humans verify every answer, eval runs on every model change.
+- [x] **Step 3: Phase 3, days 61–90** — expand domains, add monitoring and an incident process for a wrong answer that reached a decision.
+- [x] **Step 4: Staffing shape, success metrics** (governance leak rate, over-block rate, eval pass rate, time-to-answer, credit cost per answer), **risk register, and explicit stop/rollback criteria.**
+- [x] **Step 5: Commit** `docs: 90-day rollout plan`
 
 ---
 
@@ -63,11 +63,11 @@ The management artifact. A solo repo cannot prove second-line leadership; a roll
 
 **The adoption gate.** Ranked the #1 driver by every panel that reviewed this. A reader must see real answer cards, a real governance refusal and a real eval report **with no Snowflake account and no API key, in about five minutes.**
 
-- [ ] **Step 1: Write the failing test** — `make demo` runs with every credential stripped from the environment and produces an answer card, a refusal, and a summary.
-- [ ] **Step 2: Build it** on the 25 recorded cards plus the mock agent. No network calls.
-- [ ] **Step 3: Run it in CI**, so the no-account path cannot silently break.
-- [ ] **Step 4: Time it.** If it exceeds five minutes, that is a defect.
-- [ ] **Step 5: Commit** `feat: tier-0 demo requiring no account and no key`
+- [x] **Step 1: Write the failing test** — `make demo` runs with every credential stripped from the environment and produces an answer card, a refusal, and a summary.
+- [x] **Step 2: Build it** on the 25 recorded cards plus the mock agent. No network calls.
+- [x] **Step 3: Run it in CI**, so the no-account path cannot silently break.
+- [x] **Step 4: Time it.** If it exceeds five minutes, that is a defect.
+- [x] **Step 5: Commit** `feat: tier-0 demo requiring no account and no key`
 
 ---
 
@@ -75,12 +75,12 @@ The management artifact. A solo repo cannot prove second-line leadership; a roll
 
 **Files:** Create `README.md`.
 
-- [ ] **Step 1: Lead with the problem**, not the category. Three questions a reader recognises as their own.
-- [ ] **Step 2: Answer-card example above the fold**, then the three-command quickstart.
-- [ ] **Step 3: State the measured result with its limits inline** — 25 of 36 cells, n=2 questions head-to-head.
-- [ ] **Step 4: Write "Why these evals might be lying to you"** — residual circularity, author-chosen questions, synthetic data, and the two scorer biases caught here. **This section is the point, not an appendix.**
-- [ ] **Step 5: Cite Spider 2.0 as prior art in the opening**, with the distinction stated once.
-- [ ] **Step 6: Commit** `docs: README`
+- [x] **Step 1: Lead with the problem**, not the category. Three questions a reader recognises as their own.
+- [x] **Step 2: Answer-card example above the fold**, then the three-command quickstart.
+- [x] **Step 3: State the measured result with its limits inline** — 25 of 36 cells, n=2 questions head-to-head.
+- [x] **Step 4: Write "Why these evals might be lying to you"** — residual circularity, author-chosen questions, synthetic data, and the two scorer biases caught here. **This section is the point, not an appendix.**
+- [x] **Step 5: Cite Spider 2.0 as prior art in the opening**, with the distinction stated once.
+- [x] **Step 6: Commit** `docs: README`
 
 ---
 
@@ -88,11 +88,11 @@ The management artifact. A solo repo cannot prove second-line leadership; a roll
 
 **Files:** `Makefile`, `CONTRIBUTING.md`, `docs/bring-your-own-models.md`.
 
-- [ ] **Step 1: `make deploy` and `make teardown`** against any Snowflake account, documented credit cost.
-- [ ] **Step 2: Verify convergence** — deploy twice, assert the privilege set is identical. Grants are additive; this project has been bitten once.
-- [ ] **Step 3: CONTRIBUTING with an explicit co-maintainer invitation.** Single-maintainer risk is real and adopters price it correctly.
-- [ ] **Step 4: Bring-your-own-models guide** — swap the warehouse, author contracts, run the conformance suite.
-- [ ] **Step 5: Commit** `feat: converging deploy, teardown, and contributor guide`
+- [x] **Step 1: `make deploy` and `make teardown`** against any Snowflake account, documented credit cost.
+- [x] **Step 2: Verify convergence** — deploy twice, assert the privilege set is identical. Grants are additive; this project has been bitten once.
+- [x] **Step 3: CONTRIBUTING with an explicit co-maintainer invitation.** Single-maintainer risk is real and adopters price it correctly.
+- [x] **Step 4: Bring-your-own-models guide** — swap the warehouse, author contracts, run the conformance suite.
+- [x] **Step 5: Commit** `feat: converging deploy, teardown, and contributor guide`
 
 ---
 
@@ -102,10 +102,10 @@ The management artifact. A solo repo cannot prove second-line leadership; a roll
 
 **Do not build before checking.** Spider 2.0's tasks run against *their* Snowflake databases. This architecture's personas and views live on *ours*. Whether their tasks can run under our governance is unverified, and the plan has carried that caveat since it was written.
 
-- [ ] **Step 1: Read their repo** — license, task format, whether databases are provided or referenced.
-- [ ] **Step 2: Decide and record in an ADR**: run their tasks under our governance, borrow only their question structure, or drop it.
-- [ ] **Step 3: Build only if step 2 says it is feasible.** Recording "not feasible, here is why" is a complete outcome.
-- [ ] **Step 4: Commit** `docs(adr): whether the Spider2 adapter is feasible`
+- [x] **Step 1: Read their repo** — license, task format, whether databases are provided or referenced.
+- [x] **Step 2: Decide and record in an ADR**: run their tasks under our governance, borrow only their question structure, or drop it.
+- [x] **Step 3: Build only if step 2 says it is feasible.** Recording "not feasible, here is why" is a complete outcome.
+- [x] **Step 4: Commit** `docs(adr): whether the Spider2 adapter is feasible`
 
 ---
 
@@ -115,10 +115,10 @@ The management artifact. A solo repo cannot prove second-line leadership; a roll
 
 One page: one question, three answer cards side by side. Same question, three different correct answers, each showing its SQL, metric versions, policy context and what was withheld.
 
-- [ ] **Step 1: Render from the recorded cards.** No live calls, so it works in the demo tier.
-- [ ] **Step 2: Show `why_not` prominently** — the withholding is the argument, not a footnote.
-- [ ] **Step 3: Screenshot for the README.**
-- [ ] **Step 4: Commit** `feat: three-persona answer card viewer`
+- [x] **Step 1: Render from the recorded cards.** No live calls, so it works in the demo tier.
+- [x] **Step 2: Show `why_not` prominently** — the withholding is the argument, not a footnote.
+- [x] **Step 3: Screenshot for the README.**
+- [x] **Step 4: Commit** `feat: three-persona answer card viewer`
 
 **Explicitly out of scope:** pipeline charts, funnel views, drill-downs, an executive GTM dashboard. Per ADR 0002 — that is BI tool territory and unrelated to the thesis.
 
@@ -131,3 +131,33 @@ One page: one question, three answer cards side by side. Same question, three di
 **Known risk.** Task 6 may end in "not feasible." That is a real outcome and the plan says so rather than assuming a build.
 
 **Carried forward from Plan 2:** the remaining 11 experiment cells and any full 108-cell run are blocked until 2026-10-01. Nothing in this plan depends on them.
+
+---
+
+## Outcome
+
+All seven tasks complete. Three deviations from the plan as written, each made
+deliberately:
+
+**Task 5 grew.** Verifying `make deploy` against another account exposed that it
+could not run against one: the DDL granted roles to a user literally named
+GAA_OPERATOR, referenced COMPUTE_WH, and embedded an RSA public key. The README
+already claimed portability, so this was a false claim rather than a missing
+feature. Fixed, and convergence was verified live — 69 grants, second run
+identical — then proven able to fail by injecting a grant and catching the diff.
+
+**Task 6 ended in "not feasible", which the plan anticipated.** Spider 2.0 tasks
+carry no persona, so the two failure categories this architecture exists to
+measure are unexpressible in their format; only one of three arms could run them
+at all; and governance here is authored per warehouse, making 152 databases 152
+modelling projects. Recorded in ADR 0004 along with the one narrower variant
+that survives every objection.
+
+**Task 7 shipped as a generated page rather than FastAPI.** Every step in the
+task says "no live calls", so a server would have added dependencies and a
+process to render static data.
+
+**Still open, unchanged:** the remaining 11 experiment cells and any full 108-cell
+run, blocked until 2026-10-01; three of five chaos variants; and privilege-drift
+detection, which now has a working mechanism but nothing running it on a
+schedule.
