@@ -14,7 +14,7 @@ import json
 from html import escape
 from pathlib import Path
 
-from gaa.agent.card import AnswerCard
+from gtm_analyst.agent.card import AnswerCard
 
 # Ordered widest-to-narrowest so the page reads as progressive restriction
 # rather than three unrelated columns.

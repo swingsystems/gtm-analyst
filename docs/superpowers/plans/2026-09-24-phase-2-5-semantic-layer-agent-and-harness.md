@@ -16,7 +16,7 @@
 - `evals/spec/` is **frozen** except for `expected` blocks. A commit touching `reference_sql/` fails `tests/test_spec_predates_models.py` permanently.
 - All monetary values are strings with two decimals, end to end. Never float.
 - Python 3.11+, line length 100, `ruff` clean before every commit.
-- Every task ends with `uv run pytest -q` and `uv run ruff check gaa tests scripts` both clean.
+- Every task ends with `uv run pytest -q` and `uv run ruff check gtm tests scripts` both clean.
 
 ## Execution Mode
 
@@ -35,19 +35,19 @@ Tasks 8–9 need `ANTHROPIC_API_KEY`. **Verify before starting Task 8**; if abse
 
 ```
 semantic/contracts/*.yaml          one metric per file, structured, no SQL
-gaa/semantic/models.py             MetricContract, Measure, Dimension, Aggregation
-gaa/semantic/loader.py             load + validate the contract directory
-gaa/semantic/compile.py            contract + request -> parameterised SQL
-gaa/mcp/server.py                  the tool surface; the governance boundary
-gaa/mcp/tools.py                   tool implementations
-gaa/mcp/audit.py                   per-call logging
-gaa/agent/card.py                  AnswerCard
-gaa/agent/constrained.py           agent restricted to declared metrics
-gaa/agent/freesql.py               agent writing its own SQL (comparison arm)
-gaa/agent/mock.py                  deterministic replay for tier 0
-gaa/harness/score.py               compare answer to ground truth, classify
-gaa/harness/chaos.py               deliberately broken model variants
-gaa/harness/run.py                 the experiment
+gtm_analyst/semantic/models.py             MetricContract, Measure, Dimension, Aggregation
+gtm_analyst/semantic/loader.py             load + validate the contract directory
+gtm_analyst/semantic/compile.py            contract + request -> parameterised SQL
+gtm_analyst/mcp/server.py                  the tool surface; the governance boundary
+gtm_analyst/mcp/tools.py                   tool implementations
+gtm_analyst/mcp/audit.py                   per-call logging
+gtm_analyst/agent/card.py                  AnswerCard
+gtm_analyst/agent/constrained.py           agent restricted to declared metrics
+gtm_analyst/agent/freesql.py               agent writing its own SQL (comparison arm)
+gtm_analyst/agent/mock.py                  deterministic replay for tier 0
+gtm_analyst/harness/score.py               compare answer to ground truth, classify
+gtm_analyst/harness/chaos.py               deliberately broken model variants
+gtm_analyst/harness/run.py                 the experiment
 chaos/*.sql                        broken mart variants
 results/                           published per-category rates
 ```
@@ -56,7 +56,7 @@ results/                           published per-category rates
 
 ### Task 1: Metric contract schema
 
-**Files:** Create `gaa/semantic/__init__.py`, `gaa/semantic/models.py`. Test `tests/test_semantic_models.py`.
+**Files:** Create `gtm_analyst/semantic/__init__.py`, `gtm_analyst/semantic/models.py`. Test `tests/test_semantic_models.py`.
 
 **Interfaces:**
 - Produces: `Aggregation` (str enum: `sum`, `count`, `count_distinct`, `min`, `max`, `avg`); `Measure(column, aggregation)`; `Dimension(name, column, description)`; `MetricContract(name, version, description, owner, table, grain, measure, dimensions, default_filters, null_policy, period_column)`.
@@ -128,9 +128,9 @@ def test_contract_rejects_unknown_fields():
 
 - [ ] **Step 2: Run it, confirm ModuleNotFoundError.** `uv run pytest tests/test_semantic_models.py -v`
 
-- [ ] **Step 3: Implement `gaa/semantic/models.py`**
+- [ ] **Step 3: Implement `gtm_analyst/semantic/models.py`**
 
-Mirror `gaa/spec/models.py` in style. `model_config = ConfigDict(extra="forbid")` everywhere. A shared `_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")` validator on every column and table field. `FilterOp` enum: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`. `null_policy` is `Literal["preserve", "exclude"]`.
+Mirror `gtm_analyst/spec/models.py` in style. `model_config = ConfigDict(extra="forbid")` everywhere. A shared `_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")` validator on every column and table field. `FilterOp` enum: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `in`. `null_policy` is `Literal["preserve", "exclude"]`.
 
 - [ ] **Step 4: Run tests — 7 pass. Run ruff — clean.**
 
@@ -140,7 +140,7 @@ Mirror `gaa/spec/models.py` in style. `model_config = ConfigDict(extra="forbid")
 
 ### Task 2: Contract loader
 
-**Files:** Create `gaa/semantic/loader.py`. Test `tests/test_semantic_loader.py`.
+**Files:** Create `gtm_analyst/semantic/loader.py`. Test `tests/test_semantic_loader.py`.
 
 **Interfaces:**
 - Consumes: `gaa.semantic.models.MetricContract`.
@@ -150,7 +150,7 @@ Mirror `gaa/spec/models.py` in style. `model_config = ConfigDict(extra="forbid")
 
 - [ ] **Step 2: Run it, confirm it fails.**
 
-- [ ] **Step 3: Implement**, mirroring `gaa/spec/loader.py` exactly — same error-conversion pattern, same `_read_yaml` helper shape.
+- [ ] **Step 3: Implement**, mirroring `gtm_analyst/spec/loader.py` exactly — same error-conversion pattern, same `_read_yaml` helper shape.
 
 - [ ] **Step 4: Tests pass, ruff clean.**
 
@@ -198,7 +198,7 @@ default_filters:
 
 ### Task 4: Contract compiler
 
-**Files:** Create `gaa/semantic/compile.py`. Test `tests/test_compile.py`.
+**Files:** Create `gtm_analyst/semantic/compile.py`. Test `tests/test_compile.py`.
 
 **Interfaces:**
 - Produces: `QueryRequest(metric, dimensions, filters, period)`; `CompiledQuery(sql, params, metrics_used, lineage)`; `compile_query(contracts: ContractSet, request: QueryRequest) -> CompiledQuery`.
@@ -227,7 +227,7 @@ default_filters:
 
 ### Task 5: MCP tool surface — read-only tools
 
-**Files:** Create `gaa/mcp/__init__.py`, `gaa/mcp/tools.py`, `gaa/mcp/audit.py`. Test `tests/test_mcp_tools.py`.
+**Files:** Create `gtm_analyst/mcp/__init__.py`, `gtm_analyst/mcp/tools.py`, `gtm_analyst/mcp/audit.py`. Test `tests/test_mcp_tools.py`.
 
 **Interfaces:**
 - Produces: `list_metrics(persona) -> list[dict]`; `describe_metric(persona, name) -> dict`; `query_metric(persona, request) -> dict` returning `{rows, sql, metrics_used, lineage, query_id, context}`; `audit.record(call) -> None` writing one JSONL line per call with persona, role, schema, tool, metric versions, query id, and duration.
@@ -246,7 +246,7 @@ default_filters:
 
 ### Task 6: `run_sql` — the unconstrained comparison arm
 
-**Files:** Modify `gaa/mcp/tools.py`. Test `tests/test_run_sql_guard.py`.
+**Files:** Modify `gtm_analyst/mcp/tools.py`. Test `tests/test_run_sql_guard.py`.
 
 **Interfaces:** Produces `run_sql(persona, statement) -> dict`, same return shape as `query_metric` with `metrics_used: []`.
 
@@ -266,7 +266,7 @@ default_filters:
 
 ### Task 7: `explain_lineage` and the MCP server
 
-**Files:** Create `gaa/mcp/server.py`. Modify `gaa/mcp/tools.py`. Test `tests/test_mcp_server.py`.
+**Files:** Create `gtm_analyst/mcp/server.py`. Modify `gtm_analyst/mcp/tools.py`. Test `tests/test_mcp_server.py`.
 
 **Interfaces:** Produces `explain_lineage(persona, metric) -> dict` returning the view, its underlying marts, and the model versions; and a runnable MCP server exposing all five tools.
 
@@ -278,7 +278,7 @@ default_filters:
 
 ### Task 8: Answer card and the constrained agent
 
-**Files:** Create `gaa/agent/__init__.py`, `gaa/agent/card.py`, `gaa/agent/constrained.py`. Test `tests/test_answer_card.py`, `tests/test_constrained_agent.py`.
+**Files:** Create `gtm_analyst/agent/__init__.py`, `gtm_analyst/agent/card.py`, `gtm_analyst/agent/constrained.py`. Test `tests/test_answer_card.py`, `tests/test_constrained_agent.py`.
 
 **Requires `ANTHROPIC_API_KEY`.** Verify first.
 
@@ -310,7 +310,7 @@ on q011, the experiment has lost its discriminating case and that must be report
 
 #### Original task 9 content follows
 
-**Files:** Create `gaa/agent/freesql.py`. Test `tests/test_freesql_agent.py`.
+**Files:** Create `gtm_analyst/agent/freesql.py`. Test `tests/test_freesql_agent.py`.
 
 **Interfaces:** Produces `answer(question, persona) -> AnswerCard` with the same signature, using `run_sql` and schema introspection instead of contracts.
 
@@ -324,7 +324,7 @@ on q011, the experiment has lost its discriminating case and that must be report
 
 ### Task 10: Mock agent for tier 0
 
-**Files:** Create `gaa/agent/mock.py`, `fixtures/mock_runs/*.json`. Test `tests/test_mock_agent.py`.
+**Files:** Create `gtm_analyst/agent/mock.py`, `fixtures/mock_runs/*.json`. Test `tests/test_mock_agent.py`.
 
 **Interfaces:** Produces `answer(question, persona) -> AnswerCard` replaying recorded tool calls, requiring no API key and no Snowflake account.
 
@@ -336,7 +336,7 @@ on q011, the experiment has lost its discriminating case and that must be report
 
 ### Task 11: Scorer and failure taxonomy classifier
 
-**Files:** Create `gaa/harness/__init__.py`, `gaa/harness/score.py`. Test `tests/test_score.py`.
+**Files:** Create `gtm_analyst/harness/__init__.py`, `gtm_analyst/harness/score.py`. Test `tests/test_score.py`.
 
 **Interfaces:** Produces `Outcome` (str enum: `correct`, `wrong`, `inexpressible`);
 `Score(question_id, persona, arm, outcome, category, refusal_kind, detail)`;
@@ -370,7 +370,7 @@ express) — the pre-registered schema forbids summing them.
 
 ### Task 12: Chaos suite
 
-**Files:** Create `chaos/*.sql`, `gaa/harness/chaos.py`. Test `tests/test_chaos.py`.
+**Files:** Create `chaos/*.sql`, `gtm_analyst/harness/chaos.py`. Test `tests/test_chaos.py`.
 
 **Interfaces:** Produces `apply_chaos(name)` / `revert_chaos()`; five broken variants — `fanout_join`, `wrong_effective_date`, `off_by_one_quarter`, `coalesce_swallows_null`, `calendar_too_short` (the bug actually committed in `e517ed4`).
 
@@ -382,9 +382,9 @@ express) — the pre-registered schema forbids summing them.
 
 ### Task 13: The experiment
 
-**Files:** Create `gaa/harness/run.py`, `results/`. Modify `gaa/cli.py`. Test `tests/test_experiment.py`.
+**Files:** Create `gtm_analyst/harness/run.py`, `results/`. Modify `gtm_analyst/cli.py`. Test `tests/test_experiment.py`.
 
-**Interfaces:** Produces `gaa experiment [--arm both] [--out results/]` writing `results/summary.md` and `results/raw.json`.
+**Interfaces:** Produces `gtm experiment [--arm both] [--out results/]` writing `results/summary.md` and `results/raw.json`.
 
 - [ ] **Step 1: Write the failing test** — the runner produces a score for every question × persona × arm (**108 cells**: 12 × 3 × 3); a missing cell fails rather than being silently omitted; the summary emits every field the pre-registered schema requires — coverage, conditional accuracy, refusals split by kind, head-to-head on the subset all three arms can express, safety bonus, and per-category rates with explicit denominators. A summary missing any of those fails the test, because the reporting schema is the deliverable as much as the numbers are.
 

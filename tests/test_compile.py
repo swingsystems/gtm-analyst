@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from gaa.semantic.compile import CompileError, QueryRequest, compile_query
-from gaa.semantic.loader import load_contracts
+from gtm_analyst.semantic.compile import CompileError, QueryRequest, compile_query
+from gtm_analyst.semantic.loader import load_contracts
 
 CONTRACTS = load_contracts(Path(__file__).parent.parent / "semantic" / "contracts")
 
@@ -114,7 +114,7 @@ def test_in_operator_binds_every_element_separately():
 def test_the_statement_is_a_single_select():
     """Whatever the request, the output must be one SELECT. Anything else means
     a value escaped into statement position."""
-    from gaa.spec.sql import sql_statements
+    from gtm_analyst.spec.sql import sql_statements
 
     q = compile_query(CONTRACTS, _req(
         filters=[{"column": "REGION", "op": "eq", "value": "x'; DELETE FROM y; --"}]))

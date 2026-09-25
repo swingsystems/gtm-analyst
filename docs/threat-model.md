@@ -11,7 +11,7 @@ document. Where a control exists because something broke, the commit is cited.
 ## Trust boundary
 
 The agent runs as a persona service user holding exactly one Snowflake role. Its
-entire reach is the tool surface in `gaa/mcp/tools.py`. Enforcement lives in the
+entire reach is the tool surface in `gtm_analyst/mcp/tools.py`. Enforcement lives in the
 warehouse: grants, schema scoping, and secure views. The prompt is not a control
 and is never relied on as one.
 

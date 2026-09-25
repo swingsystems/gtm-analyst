@@ -5,9 +5,9 @@ missing a required section fails here, because the schema was pre-registered
 and a report that quietly drops a section is the misleading result ADR 0003
 exists to prevent.
 """
-from gaa.harness.run import summarise
-from gaa.harness.score import Outcome, RefusalKind, Score
-from gaa.spec.taxonomy import FailureCategory
+from gtm_analyst.harness.run import summarise
+from gtm_analyst.harness.score import Outcome, RefusalKind, Score
+from gtm_analyst.spec.taxonomy import FailureCategory
 
 ARMS = ["strict-contract", "safe-join-contract", "free-sql"]
 
@@ -82,7 +82,7 @@ def test_resume_replays_recorded_cells_instead_of_paying_for_them_again(
     import json
     from pathlib import Path
 
-    from gaa.harness import run as run_mod
+    from gtm_analyst.harness import run as run_mod
 
     repo = Path(__file__).parent.parent
     recorded = json.loads((repo / "results" / "pilot2" / "cards.json").read_text())

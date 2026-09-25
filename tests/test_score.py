@@ -7,9 +7,9 @@ substantively misleading" result ADR 0003 pre-registers against.
 """
 from decimal import Decimal
 
-from gaa.agent.card import AnswerCard
-from gaa.harness.score import Outcome, RefusalKind, score_answer
-from gaa.spec.taxonomy import FailureCategory
+from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.harness.score import Outcome, RefusalKind, score_answer
+from gtm_analyst.spec.taxonomy import FailureCategory
 
 TRUTH = [
     {"REGION": "AMER", "VALUE": "2005507.42"},
@@ -210,7 +210,7 @@ def test_totals_are_summed_under_any_column_alias():
     zero and was reported as 'a different definition' -- penalising the same arm
     in the same direction, which is how it survived the first fix.
     """
-    from gaa.harness.score import _numeric_total
+    from gtm_analyst.harness.score import _numeric_total
 
     assert _numeric_total([{"REGION": "EMEA", "BOOKINGS_AMOUNT": "100.50"}]) == Decimal("100.50")
     assert _numeric_total([{"REGION": "EMEA", "VALUE": "100.50"}]) == Decimal("100.50")
@@ -229,7 +229,7 @@ def test_a_count_column_is_not_added_to_the_money():
     confidently wrong by exactly the row count. Removing alias-dependence by
     discarding all column semantics also discarded the difference between a
     measure and a count."""
-    from gaa.harness.score import _numeric_total, total_is_ambiguous
+    from gtm_analyst.harness.score import _numeric_total, total_is_ambiguous
 
     rows = [{"REGION": "EMEA", "BOOKINGS_AMOUNT": "1313784.51", "N": "10"}]
     assert total_is_ambiguous(rows)
@@ -249,7 +249,7 @@ def test_an_ambiguous_total_never_reads_as_agreement():
 
 
 def test_a_single_measure_still_totals_normally():
-    from gaa.harness.score import _numeric_total, total_is_ambiguous
+    from gtm_analyst.harness.score import _numeric_total, total_is_ambiguous
 
     rows = [{"REGION": "EMEA", "BOOKINGS_AMOUNT": "100.50"}]
     assert not total_is_ambiguous(rows)

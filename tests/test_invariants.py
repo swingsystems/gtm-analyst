@@ -3,9 +3,9 @@
 These deliberately do not touch Snowflake: an invariant that only works against
 one particular dataset is not an invariant.
 """
-from gaa.runner.invariants import check_invariant
-from gaa.runner.reference import ReferenceResult
-from gaa.spec.models import Invariant
+from gtm_analyst.runner.invariants import check_invariant
+from gtm_analyst.runner.reference import ReferenceResult
+from gtm_analyst.spec.models import Invariant
 
 
 def _res(qid, persona, rows):

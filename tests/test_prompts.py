@@ -3,7 +3,7 @@
 If one arm's prompt is better written than another's, the experiment measures
 prose quality and reports it as a finding about semantic grounding.
 """
-from gaa.agent.prompts import (
+from gtm_analyst.agent.prompts import (
     FREE_SQL_TOOLS,
     SAFE_JOIN_TOOLS,
     SHARED_PREAMBLE,

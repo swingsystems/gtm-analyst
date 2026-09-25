@@ -1,6 +1,10 @@
-# Safe, auditable analytics agents on Snowflake
+# GTM Analyst
 
-**Deploy it in a day. Prove it against your own warehouse.**
+**A GTM analyst you can audit.** Governed analytics agents on Snowflake, where
+every number carries its SQL, the role that ran it, and a query id you can
+resolve yourself.
+
+Deploy it in a day. Prove it against your own warehouse.
 
 An analytics agent that can query your warehouse can also leak it.
 
@@ -18,7 +22,7 @@ published measurement — including the measurements that went against it.
 ## See it in five minutes, with no account and no API key
 
 ```bash
-git clone <this repo> && cd gtmagents
+git clone <this repo> && cd gtm-analyst
 make setup
 make demo
 ```
@@ -110,7 +114,7 @@ forbids one.
 
 Full results and their limits: [`results/`](results/).
 
-The run resumes rather than restarting — `gaa experiment --resume-from
+The run resumes rather than restarting — `gtm experiment --resume-from
 results/pilot2/cards.json` replays the 25 recorded cells and calls the model
 only for the missing ones. Recorded cells are **rescored**, never trusted: a
 score is cheap and deterministic, the card is the expensive artifact, and

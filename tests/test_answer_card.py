@@ -6,7 +6,7 @@ claim is auditability must refuse to emit one.
 import pytest
 from pydantic import ValidationError
 
-from gaa.agent.card import AnswerCard
+from gtm_analyst.agent.card import AnswerCard
 
 
 def _card(**overrides):

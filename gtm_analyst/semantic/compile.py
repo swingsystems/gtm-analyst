@@ -18,8 +18,8 @@ Binding is the defence, and it lives here.
 """
 from dataclasses import dataclass, field
 
-from gaa.semantic.loader import ContractSet
-from gaa.semantic.models import Filter, FilterOp, MetricContract
+from gtm_analyst.semantic.loader import ContractSet
+from gtm_analyst.semantic.models import Filter, FilterOp, MetricContract
 
 _SQL_OPS = {
     FilterOp.EQ: "=",

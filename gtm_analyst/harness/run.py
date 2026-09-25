@@ -12,10 +12,10 @@ from collections import Counter, defaultdict
 from dataclasses import asdict
 from pathlib import Path
 
-from gaa.agent.card import AnswerCard
-from gaa.agent.runner import ARM_TOOLS, answer
-from gaa.harness.score import Outcome, RefusalKind, Score, score_answer
-from gaa.spec.loader import Spec, load_spec
+from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.agent.runner import ARM_TOOLS, answer
+from gtm_analyst.harness.score import Outcome, RefusalKind, Score, score_answer
+from gtm_analyst.spec.loader import Spec, load_spec
 
 PERMITTED_REGIONS = {
     "FINANCE_GLOBAL": {"AMER", "APAC", "EMEA"},

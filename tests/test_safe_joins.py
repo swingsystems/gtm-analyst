@@ -8,7 +8,7 @@ the contract loads, not when a number comes out wrong three quarters later.
 import pytest
 from pydantic import ValidationError
 
-from gaa.semantic.models import Join, JoinKey, MetricContract, ValidityWindow
+from gtm_analyst.semantic.models import Join, JoinKey, MetricContract, ValidityWindow
 
 
 def _join(**overrides):
@@ -76,8 +76,8 @@ def test_a_contract_may_declare_no_joins_at_all():
 
 from pathlib import Path
 
-from gaa.semantic.compile import CompileError, QueryRequest, compile_query
-from gaa.semantic.loader import ContractSet
+from gtm_analyst.semantic.compile import CompileError, QueryRequest, compile_query
+from gtm_analyst.semantic.loader import ContractSet
 
 
 def _joined_contract():
@@ -152,8 +152,8 @@ def test_the_strict_arm_cannot_see_a_joined_metric():
     enforced: both read the same contracts directory, so a join-bearing contract
     added for the safe-join arm is visible to the strict one unless filtered,
     and the experiment quietly compares an arm against itself."""
-    from gaa.mcp.tools import ToolSurface
-    from gaa.spec.loader import load_spec
+    from gtm_analyst.mcp.tools import ToolSurface
+    from gtm_analyst.spec.loader import load_spec
 
     spec = load_spec(Path(__file__).parent.parent / "evals" / "spec")
     root = Path(__file__).parent.parent / "semantic" / "contracts"
@@ -170,7 +170,7 @@ def test_the_strict_arm_cannot_see_a_joined_metric():
 
 
 def test_the_arm_join_policy_is_declared_for_every_arm():
-    from gaa.agent.runner import ARM_ALLOWS_JOINS, ARM_TOOLS
+    from gtm_analyst.agent.runner import ARM_ALLOWS_JOINS, ARM_TOOLS
 
     assert set(ARM_ALLOWS_JOINS) == set(ARM_TOOLS)
     assert ARM_ALLOWS_JOINS["strict-contract"] is False

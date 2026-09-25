@@ -43,12 +43,12 @@ def require_token_for_transport(transport: str, token: str | None) -> None:
     if not token:
         raise AuthError(
             f"transport {transport!r} is network-reachable and requires "
-            f"GAA_MCP_TOKEN; over the network, the persona this server is bound "
+            f"GTM_MCP_TOKEN; over the network, the persona this server is bound "
             f"to is whoever can reach the port"
         )
     if len(token) < MIN_TOKEN_LENGTH:
         raise AuthError(
-            f"GAA_MCP_TOKEN must be at least {MIN_TOKEN_LENGTH} characters; a "
+            f"GTM_MCP_TOKEN must be at least {MIN_TOKEN_LENGTH} characters; a "
             f"guessable token is the same exposure plus the belief it is closed"
         )
 

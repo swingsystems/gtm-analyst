@@ -29,7 +29,7 @@ Hybrid, split at the Snowflake boundary.
 Delegate an ambiguous task only if it introduces no names consumed elsewhere, is fully validated by
 existing tests without human interpretation, and cannot require modifying Task 2–5 files.
 
-**Standing rule for every executor, inline or delegated:** files under `evals/spec/` and `gaa/spec/`
+**Standing rule for every executor, inline or delegated:** files under `evals/spec/` and `gtm_analyst/spec/`
 are frozen once Task 5 is committed. If a later task appears to need a change there, stop and
 escalate rather than editing. A commit touching spec files after Task 6 breaks Task 13 permanently,
 and it cannot be repaired by rewriting history — rewriting is the thing the history exists to
@@ -108,7 +108,7 @@ tests/
 ### Task 1: Project scaffolding and typed configuration
 
 **Files:**
-- Create: `pyproject.toml`, `.env.example`, `.gitignore`, `gaa/__init__.py`, `gaa/config.py`
+- Create: `pyproject.toml`, `.env.example`, `.gitignore`, `gtm_analyst/__init__.py`, `gtm_analyst/config.py`
 - Test: `tests/test_config.py`
 
 **Interfaces:**
@@ -188,10 +188,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 ```
 
-- [ ] **Step 4: Write gaa/config.py**
+- [ ] **Step 4: Write gtm_analyst/config.py**
 
 ```python
-# gaa/config.py
+# gtm_analyst/config.py
 from pathlib import Path
 
 from pydantic import Field
@@ -222,7 +222,7 @@ def load_settings() -> Settings:
         raise ValueError(f"invalid or missing configuration: {exc}") from exc
 ```
 
-Create `gaa/__init__.py` as an empty file.
+Create `gtm_analyst/__init__.py` as an empty file.
 
 - [ ] **Step 5: Write .env.example and .gitignore**
 
@@ -267,7 +267,7 @@ git commit -m "feat: project scaffolding and typed configuration"
 ### Task 2: Spec schemas — personas, questions, invariants
 
 **Files:**
-- Create: `gaa/spec/__init__.py`, `gaa/spec/models.py`, `gaa/spec/taxonomy.py`
+- Create: `gtm_analyst/spec/__init__.py`, `gtm_analyst/spec/models.py`, `gtm_analyst/spec/taxonomy.py`
 - Test: `tests/test_spec_models.py`
 
 **Interfaces:**
@@ -347,10 +347,10 @@ def test_failure_categories_present():
 Run: `uv run pytest tests/test_spec_models.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'gaa.spec'`
 
-- [ ] **Step 3: Write gaa/spec/taxonomy.py**
+- [ ] **Step 3: Write gtm_analyst/spec/taxonomy.py**
 
 ```python
-# gaa/spec/taxonomy.py
+# gtm_analyst/spec/taxonomy.py
 from enum import Enum
 
 
@@ -371,10 +371,10 @@ class FailureCategory(str, Enum):
     UNRESOLVABLE = "unresolvable"
 ```
 
-- [ ] **Step 4: Write gaa/spec/models.py**
+- [ ] **Step 4: Write gtm_analyst/spec/models.py**
 
 ```python
-# gaa/spec/models.py
+# gtm_analyst/spec/models.py
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator
@@ -433,7 +433,7 @@ class Invariant(BaseModel):
     params: dict[str, Any] = Field(default_factory=dict)
 ```
 
-Create `gaa/spec/__init__.py` as an empty file.
+Create `gtm_analyst/spec/__init__.py` as an empty file.
 
 - [ ] **Step 5: Run tests to verify they pass**
 
@@ -443,7 +443,7 @@ Expected: 6 passed
 - [ ] **Step 6: Commit**
 
 ```bash
-git add gaa/spec/ tests/test_spec_models.py
+git add gtm_analyst/spec/ tests/test_spec_models.py
 git commit -m "feat(spec): schemas for personas, questions, and invariants"
 ```
 
@@ -452,7 +452,7 @@ git commit -m "feat(spec): schemas for personas, questions, and invariants"
 ### Task 3: Spec loader with safe YAML and referential integrity
 
 **Files:**
-- Create: `gaa/spec/loader.py`
+- Create: `gtm_analyst/spec/loader.py`
 - Test: `tests/test_spec_loader.py`
 
 **Interfaces:**
@@ -536,10 +536,10 @@ def test_unsafe_yaml_tag_rejected(tmp_path):
 Run: `uv run pytest tests/test_spec_loader.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'gaa.spec.loader'`
 
-- [ ] **Step 3: Write gaa/spec/loader.py**
+- [ ] **Step 3: Write gtm_analyst/spec/loader.py**
 
 ```python
-# gaa/spec/loader.py
+# gtm_analyst/spec/loader.py
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -626,7 +626,7 @@ Note: `test_unsafe_yaml_tag_rejected` passes because `yaml.safe_load` raises on 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add gaa/spec/loader.py tests/test_spec_loader.py
+git add gtm_analyst/spec/loader.py tests/test_spec_loader.py
 git commit -m "feat(spec): loader with safe YAML and referential integrity checks"
 ```
 
@@ -817,12 +817,12 @@ not the reverse. Verifiable in git log; asserted by tests/test_spec_predates_mod
 ### Task 5: Spec validation CLI and CI gate
 
 **Files:**
-- Create: `gaa/cli.py`, `.github/workflows/ci.yml`, `Makefile`
+- Create: `gtm_analyst/cli.py`, `.github/workflows/ci.yml`, `Makefile`
 - Test: `tests/test_cli.py`
 
 **Interfaces:**
 - Consumes: `gaa.spec.loader.load_spec`.
-- Produces: `gaa spec-validate [--root PATH]` exiting 0 on a valid spec and 1 with a diagnostic on an invalid one; `make spec-validate`.
+- Produces: `gtm spec-validate [--root PATH]` exiting 0 on a valid spec and 1 with a diagnostic on an invalid one; `make spec-validate`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -859,10 +859,10 @@ def test_spec_validate_fails_on_broken_spec(tmp_path):
 Run: `uv run pytest tests/test_cli.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'gaa.cli'`
 
-- [ ] **Step 3: Write gaa/cli.py**
+- [ ] **Step 3: Write gtm_analyst/cli.py**
 
 ```python
-# gaa/cli.py
+# gtm_analyst/cli.py
 import sys
 from pathlib import Path
 
@@ -903,10 +903,10 @@ setup:
 	uv sync --all-extras
 
 spec-validate:
-	uv run gaa spec-validate --root evals/spec
+	uv run gtm spec-validate --root evals/spec
 
 lint:
-	uv run ruff check gaa tests
+	uv run ruff check gtm tests
 
 test:
 	uv run pytest -v
@@ -928,8 +928,8 @@ jobs:
           fetch-depth: 0  # full history: test_spec_predates_models inspects git log
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --all-extras
-      - run: uv run ruff check gaa tests
-      - run: uv run gaa spec-validate --root evals/spec
+      - run: uv run ruff check gtm tests
+      - run: uv run gtm spec-validate --root evals/spec
       - run: uv run pytest -v
 ```
 
@@ -941,7 +941,7 @@ Expected: 2 passed, ruff clean
 - [ ] **Step 7: Commit**
 
 ```bash
-git add gaa/cli.py Makefile .github/ tests/test_cli.py
+git add gtm_analyst/cli.py Makefile .github/ tests/test_cli.py
 git commit -m "feat(cli): spec-validate command and CI gate"
 ```
 
@@ -950,16 +950,16 @@ git commit -m "feat(cli): spec-validate command and CI gate"
 ### Task 6: Generic profile-driven synthetic data generator
 
 **Files:**
-- Create: `gaa/synth/__init__.py`, `gaa/synth/profile.py`, `gaa/synth/generate.py`
+- Create: `gtm_analyst/synth/__init__.py`, `gtm_analyst/synth/profile.py`, `gtm_analyst/synth/generate.py`
 - Create: `warehouse/seeds/profile.yaml` (the GTM domain shape, as config)
 - Create: `warehouse/seeds/*.csv` (generated output, committed)
-- Modify: `gaa/cli.py` (add `synth` command)
+- Modify: `gtm_analyst/cli.py` (add `synth` command)
 - Test: `tests/test_synth.py`, `tests/test_seed_data.py`
 
 **Interfaces:**
 - Consumes: nothing.
 - Produces: `gaa.synth.profile.{ColumnProfile, TableProfile, DatasetProfile, load_profile}`;
-  `gaa.synth.generate.generate(profile, seed) -> dict[str, list[dict]]`; CLI `gaa synth`.
+  `gaa.synth.generate.generate(profile, seed) -> dict[str, list[dict]]`; CLI `gtm synth`.
 - Generated tables and columns: `raw_accounts(ACCOUNT_ID, ACCOUNT_NAME, REGION, SEGMENT,
   OWNER_REP_ID)`, `raw_bookings(BOOKING_ID, ACCOUNT_ID, BOOKING_DATE, AMOUNT, LICENSE_TYPE,
   TERM_MONTHS, IS_INTERCOMPANY, CURRENCY)`, `raw_billings(BILLING_ID, BOOKING_ID, INVOICE_DATE,
@@ -1107,14 +1107,14 @@ anomalies:
   territory_reassignment_date: "2026-08-15"
 ```
 
-- [ ] **Step 4: Write `gaa/synth/profile.py`**
+- [ ] **Step 4: Write `gtm_analyst/synth/profile.py`**
 
 Pydantic models mirroring the YAML above — `ColumnProfile`, `TableProfile`, `DatasetProfile`, and
 `load_profile(path) -> DatasetProfile` using `yaml.safe_load`. Mirror the structure of
-`gaa/spec/loader.py`: a `ProfileError` for malformed input, no raw SQL anywhere, and validation that
+`gtm_analyst/spec/loader.py`: a `ProfileError` for malformed input, no raw SQL anywhere, and validation that
 `license_split` sums to 1.0 and every anomaly count is smaller than the row count it applies to.
 
-- [ ] **Step 5: Write `gaa/synth/generate.py`**
+- [ ] **Step 5: Write `gtm_analyst/synth/generate.py`**
 
 `generate(profile, seed) -> dict[str, list[dict]]`, returning one key per table plus `_anomalies`,
 a manifest of every deliberately placed anomaly. Requirements:
@@ -1130,7 +1130,7 @@ a manifest of every deliberately placed anomaly. Requirements:
 - [ ] **Step 6: Add the CLI command and regenerate seeds**
 
 ```python
-# append to gaa/cli.py
+# append to gtm_analyst/cli.py
 @cli.command("synth")
 @click.option("--profile", type=click.Path(path_type=Path),
               default=Path("warehouse/seeds/profile.yaml"))
@@ -1156,7 +1156,7 @@ def synth(profile: Path, out: Path) -> None:
     click.echo(f"{anomalies}: anomaly manifest")
 ```
 
-Run: `uv run gaa synth`
+Run: `uv run gtm synth`
 
 - [ ] **Step 7: Write tests/test_seed_data.py against the generated CSVs**
 
@@ -1166,10 +1166,10 @@ accounts, and `_anomalies.json` matches what is actually missing from the billin
 
 - [ ] **Step 8: Run everything and commit**
 
-Run: `uv run pytest -q && uv run ruff check gaa tests`
+Run: `uv run pytest -q && uv run ruff check gtm tests`
 
 ```bash
-git add gaa/synth/ gaa/cli.py warehouse/seeds/ tests/test_synth.py tests/test_seed_data.py
+git add gtm_analyst/synth/ gtm_analyst/cli.py warehouse/seeds/ tests/test_synth.py tests/test_seed_data.py
 git commit -m "feat(synth): generic profile-driven synthetic data generator"
 ```
 
@@ -1643,7 +1643,7 @@ git commit -m "feat(governance): roles, per-persona schemas, and scoped grants"
 ### Task 10: Per-persona secure views and the bypass suite
 
 **Files:**
-- Create: `warehouse/governance/03_persona_views.sql`, `gaa/connection.py`
+- Create: `warehouse/governance/03_persona_views.sql`, `gtm_analyst/connection.py`
 - Test: `tests/test_governance_boundary.py`
 
 **Interfaces:**
@@ -1727,10 +1727,10 @@ def test_masking_changes_values_but_not_row_count():
 
 Run: `uv run pytest tests/test_governance_boundary.py -v`
 
-- [ ] **Step 3: Write gaa/connection.py**
+- [ ] **Step 3: Write gtm_analyst/connection.py**
 
 ```python
-# gaa/connection.py
+# gtm_analyst/connection.py
 from contextlib import contextmanager
 from typing import Iterator
 
@@ -1832,7 +1832,7 @@ Expected: 5 passed against a live account.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add warehouse/governance/03_persona_views.sql gaa/connection.py tests/test_governance_boundary.py
+git add warehouse/governance/03_persona_views.sql gtm_analyst/connection.py tests/test_governance_boundary.py
 git commit -m "feat(governance): per-persona secure views and the bypass suite"
 ```
 
@@ -1841,8 +1841,8 @@ git commit -m "feat(governance): per-persona secure views and the bypass suite"
 ### Task 11: Reference SQL executor and expected-value capture
 
 **Files:**
-- Create: `gaa/runner/__init__.py`, `gaa/runner/reference.py`
-- Modify: `gaa/cli.py` (add `eval-reference` and `capture-expected` commands)
+- Create: `gtm_analyst/runner/__init__.py`, `gtm_analyst/runner/reference.py`
+- Modify: `gtm_analyst/cli.py` (add `eval-reference` and `capture-expected` commands)
 - Modify: `evals/spec/questions/*.yaml` (fill `expected` values only)
 - Test: `tests/test_reference_runner.py`
 
@@ -1906,10 +1906,10 @@ def test_run_reference_rejects_multi_statement_sql(tmp_path):
 Run: `uv run pytest tests/test_reference_runner.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'gaa.runner'`
 
-- [ ] **Step 3: Write gaa/runner/reference.py**
+- [ ] **Step 3: Write gtm_analyst/runner/reference.py**
 
 ```python
-# gaa/runner/reference.py
+# gtm_analyst/runner/reference.py
 from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
@@ -1955,12 +1955,12 @@ def run_reference(spec_root: Path, question: Question, persona: Persona) -> Refe
     return ReferenceResult(question.id, persona.name, rows, query_id)
 ```
 
-Create `gaa/runner/__init__.py` as an empty file.
+Create `gtm_analyst/runner/__init__.py` as an empty file.
 
 - [ ] **Step 4: Add the CLI commands**
 
 ```python
-# append to gaa/cli.py
+# append to gtm_analyst/cli.py
 import yaml
 
 from gaa.runner.reference import run_reference
@@ -1995,7 +1995,7 @@ def capture_expected(root: Path) -> None:
 Run: `uv run pytest tests/test_reference_runner.py -v`
 Expected: 2 passed
 
-Then, against the live warehouse: `uv run gaa capture-expected`
+Then, against the live warehouse: `uv run gtm capture-expected`
 Expected: per-question, per-persona row counts and query IDs printed; `evals/spec/questions/*.yaml` now carry real values.
 
 - [ ] **Step 6: Verify persona differentiation is real**
@@ -2006,7 +2006,7 @@ Expected: PASS — and now against real captured numbers rather than placeholder
 - [ ] **Step 7: Commit**
 
 ```bash
-git add gaa/runner/ gaa/cli.py evals/spec/questions/ tests/test_reference_runner.py
+git add gtm_analyst/runner/ gtm_analyst/cli.py evals/spec/questions/ tests/test_reference_runner.py
 git commit -m "feat(runner): execute reference SQL per persona and capture ground truth"
 ```
 
@@ -2015,8 +2015,8 @@ git commit -m "feat(runner): execute reference SQL per persona and capture groun
 ### Task 12: Invariant checker
 
 **Files:**
-- Create: `gaa/runner/invariants.py`
-- Modify: `gaa/cli.py` (add `check-invariants`)
+- Create: `gtm_analyst/runner/invariants.py`
+- Modify: `gtm_analyst/cli.py` (add `check-invariants`)
 - Test: `tests/test_invariants.py`
 
 **Interfaces:**
@@ -2116,10 +2116,10 @@ def test_masking_preserves_row_count():
 Run: `uv run pytest tests/test_invariants.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'gaa.runner.invariants'`
 
-- [ ] **Step 3: Write gaa/runner/invariants.py**
+- [ ] **Step 3: Write gtm_analyst/runner/invariants.py**
 
 ```python
-# gaa/runner/invariants.py
+# gtm_analyst/runner/invariants.py
 from dataclasses import dataclass
 from decimal import Decimal
 
@@ -2212,7 +2212,7 @@ def check_invariant(inv: Invariant, results: Results) -> InvariantResult:
 - [ ] **Step 4: Add the CLI command**
 
 ```python
-# append to gaa/cli.py
+# append to gtm_analyst/cli.py
 from gaa.runner.invariants import check_invariant
 
 
@@ -2243,13 +2243,13 @@ def check_invariants(root: Path) -> None:
 Run: `uv run pytest tests/test_invariants.py -v`
 Expected: 5 passed
 
-Then against the warehouse: `uv run gaa check-invariants`
+Then against the warehouse: `uv run gtm check-invariants`
 Expected: all invariants PASS
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add gaa/runner/invariants.py gaa/cli.py tests/test_invariants.py
+git add gtm_analyst/runner/invariants.py gtm_analyst/cli.py tests/test_invariants.py
 git commit -m "feat(runner): metamorphic invariant checker"
 ```
 
@@ -2335,7 +2335,7 @@ verify-integrity:
 	uv run pytest tests/test_spec_predates_models.py -v
 
 eval:
-	uv run gaa check-invariants --root evals/spec
+	uv run gtm check-invariants --root evals/spec
 ```
 
 The CI workflow already runs `uv run pytest -v` with `fetch-depth: 0`, so this test runs in CI without further change. Confirm `fetch-depth: 0` is present — without full history the git queries return nothing and the test errors rather than passing silently.

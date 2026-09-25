@@ -17,7 +17,7 @@ from pathlib import Path
 import pytest
 from snowflake.connector.errors import DatabaseError, ProgrammingError
 
-from gaa.spec.loader import load_spec
+from gtm_analyst.spec.loader import load_spec
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("SNOWFLAKE_ACCOUNT"), reason="no Snowflake credentials"
@@ -28,7 +28,7 @@ SAME_SQL = "SELECT DISTINCT REGION FROM V_BOOKINGS ORDER BY REGION"
 
 
 def _query(persona_name: str, sql: str) -> list[tuple]:
-    from gaa.connection import session_for_persona
+    from gtm_analyst.connection import session_for_persona
 
     with session_for_persona(SPEC.personas[persona_name]) as conn:
         cursor = conn.cursor()
@@ -37,7 +37,7 @@ def _query(persona_name: str, sql: str) -> list[tuple]:
 
 
 def _blocked(persona_name: str, sql: str) -> bool:
-    from gaa.connection import session_for_persona
+    from gtm_analyst.connection import session_for_persona
 
     try:
         with session_for_persona(SPEC.personas[persona_name]) as conn:
@@ -146,8 +146,8 @@ def test_an_unmapped_user_sees_nothing_rather_than_everything() -> None:
     restoring it. Anything other than zero is a full breach for every user who
     was never mapped.
     """
-    from gaa.connection import session_for_persona
-    from gaa.spec.models import Persona
+    from gtm_analyst.connection import session_for_persona
+    from gtm_analyst.spec.models import Persona
 
     admin = Persona(name="ADMIN", snowflake_role="ACCOUNTADMIN",
                     snowflake_schema="MARTS", description="test fixture",

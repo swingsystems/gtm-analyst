@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from gaa.mcp.tools import ToolError, ToolSurface
-from gaa.spec.loader import load_spec
+from gtm_analyst.mcp.tools import ToolError, ToolSurface
+from gtm_analyst.spec.loader import load_spec
 
 SPEC = load_spec(Path(__file__).parent.parent / "evals" / "spec")
 CONTRACTS = Path(__file__).parent.parent / "semantic" / "contracts"

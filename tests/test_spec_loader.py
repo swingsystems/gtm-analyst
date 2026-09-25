@@ -1,6 +1,6 @@
 import pytest
 
-from gaa.spec.loader import SpecError, load_spec
+from gtm_analyst.spec.loader import SpecError, load_spec
 
 
 def _write_spec(root, question_yaml, sql_files=("q001_x.sql",)):

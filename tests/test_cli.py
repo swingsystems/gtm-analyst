@@ -2,7 +2,7 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-from gaa.cli import cli
+from gtm_analyst.cli import cli
 
 SPEC_ROOT = Path(__file__).parent.parent / "evals" / "spec"
 

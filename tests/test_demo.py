@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from gaa.demo.run import DemoError, run_demo
+from gtm_analyst.demo.run import DemoError, run_demo
 
 CARDS = Path(__file__).parent.parent / "results" / "pilot2" / "cards.json"
 
@@ -78,7 +78,7 @@ def test_the_rendered_totals_match_the_cards(tmp_path):
     1,313,784.51. A demo that misreports its own recordings is worse than no
     demo: it is a wrong number wearing the costume of provenance."""
 
-    from gaa.harness.score import _numeric_total
+    from gtm_analyst.harness.score import _numeric_total
 
     result = run_demo(CARDS, tmp_path)
     rendered = (tmp_path / "summary.md").read_text()
@@ -94,7 +94,7 @@ def test_totals_never_sum_an_identifier(tmp_path):
     """The specific bug. ACCOUNT_ID and FISCAL_QUARTER are not money."""
     from decimal import Decimal
 
-    from gaa.harness.score import _numeric_total
+    from gtm_analyst.harness.score import _numeric_total
 
     rows = [{"ACCOUNT_ID": "ACC00010", "REGION": "EMEA", "VALUE": "100.00"}]
     assert _numeric_total(rows) == Decimal("100.00")

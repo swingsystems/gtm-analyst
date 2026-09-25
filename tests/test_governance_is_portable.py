@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from gaa.spec.sql import strip_line_comments
-from gaa.spec.template import UnknownPlaceholder, placeholders, render
+from gtm_analyst.spec.sql import strip_line_comments
+from gtm_analyst.spec.template import UnknownPlaceholder, placeholders, render
 
 GOVERNANCE = Path(__file__).parent.parent / "warehouse" / "governance"
 

@@ -13,7 +13,7 @@
 - **No API budget.** Anthropic access is exhausted until 2026-10-01. Every task here must complete without it; the mock agent covers what would otherwise need a model.
 - `evals/spec/` stays frozen. `reference_sql/` must not be touched.
 - All credentials stay in `.env`. The pre-commit hook must keep passing.
-- Every task ends with `uv run pytest -q` and `uv run ruff check gaa tests scripts` clean, **gated before commit, not chained after it.**
+- Every task ends with `uv run pytest -q` and `uv run ruff check gtm tests scripts` clean, **gated before commit, not chained after it.**
 - Claims in written deliverables must be traceable to a commit, a test, or a recorded result. Anything else is marked as an assumption.
 
 ## Execution Mode
@@ -59,7 +59,7 @@ The management artifact. A solo repo cannot prove second-line leadership; a roll
 
 ### Task 3: Tier-0 demo path
 
-**Files:** Create `Makefile` targets, `gaa/demo/`, `tests/test_demo.py`.
+**Files:** Create `Makefile` targets, `gtm_analyst/demo/`, `tests/test_demo.py`.
 
 **The adoption gate.** Ranked the #1 driver by every panel that reviewed this. A reader must see real answer cards, a real governance refusal and a real eval report **with no Snowflake account and no API key, in about five minutes.**
 

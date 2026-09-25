@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from gaa.agent.card import AnswerCard
-from gaa.viewer.build import build_page, cards_for_question, group_by_persona, load_cards
+from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.viewer.build import build_page, cards_for_question, group_by_persona, load_cards
 
 CARDS = Path(__file__).parent.parent / "results" / "pilot2" / "cards.json"
 

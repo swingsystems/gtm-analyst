@@ -11,12 +11,12 @@ from contextlib import contextmanager
 import snowflake.connector
 
 # Bind values server-side rather than interpolating them into the statement
-# client-side. See gaa/semantic/compile.py for why this matters here.
+# client-side. See gtm_analyst/semantic/compile.py for why this matters here.
 snowflake.connector.paramstyle = "qmark"
 from cryptography.hazmat.primitives import serialization
 
-from gaa.config import Settings, load_settings
-from gaa.spec.models import Persona
+from gtm_analyst.config import Settings, load_settings
+from gtm_analyst.spec.models import Persona
 
 
 def private_key_der(settings: Settings) -> bytes:
@@ -83,7 +83,7 @@ def session_parameters_for(persona: Persona, settings: Settings) -> dict[str, st
     tag would be a bad trade.
     """
     return {
-        "QUERY_TAG": f"gaa:{persona.name}",
+        "QUERY_TAG": f"gtm-analyst:{persona.name}",
         # Snowflake's account default is often two days. A runaway scan bills
         # for all of it.
         "STATEMENT_TIMEOUT_IN_SECONDS": str(settings.gaa_statement_timeout_seconds),

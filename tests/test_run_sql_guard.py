@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 from snowflake.connector.errors import DatabaseError, ProgrammingError
 
-from gaa.mcp.tools import ToolError, ToolSurface
-from gaa.spec.loader import load_spec
+from gtm_analyst.mcp.tools import ToolError, ToolSurface
+from gtm_analyst.spec.loader import load_spec
 
 SPEC = load_spec(Path(__file__).parent.parent / "evals" / "spec")
 CONTRACTS = Path(__file__).parent.parent / "semantic" / "contracts"
@@ -90,7 +90,7 @@ def test_a_write_hidden_behind_a_comment_is_refused():
 def test_the_guard_is_an_allow_list_not_a_deny_list():
     """A deny-list of bad words is defeated by the first keyword nobody listed.
     Only SELECT and WITH may lead."""
-    from gaa.mcp.tools import _READ_ONLY_LEADERS
+    from gtm_analyst.mcp.tools import _READ_ONLY_LEADERS
 
     assert _READ_ONLY_LEADERS == frozenset({"SELECT", "WITH"})
 
@@ -143,7 +143,7 @@ def test_free_sql_reports_lineage_from_its_own_statement():
     """Free SQL has no contract to read lineage from, but the statement names
     its sources. An answer card without lineage is less auditable, and the
     auditability claim should not have an exemption for one arm."""
-    from gaa.mcp.tools import _tables_in
+    from gtm_analyst.mcp.tools import _tables_in
 
     assert _tables_in("SELECT * FROM V_BOOKINGS") == ["V_BOOKINGS"]
     assert _tables_in(

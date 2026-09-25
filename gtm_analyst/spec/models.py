@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from gaa.spec.taxonomy import FailureCategory
+from gtm_analyst.spec.taxonomy import FailureCategory
 
 _SQL_KEYWORDS = ("select ", "insert ", "update ", "delete ", "with ", "drop ", "grant ")
 

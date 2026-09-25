@@ -10,7 +10,7 @@ a warning is a server that is running.
 """
 import pytest
 
-from gaa.mcp.auth import (
+from gtm_analyst.mcp.auth import (
     MIN_TOKEN_LENGTH,
     AuthError,
     require_token_for_transport,
@@ -74,7 +74,7 @@ def test_comparison_does_not_short_circuit_on_length() -> None:
     the token cannot be recovered a character at a time."""
     import inspect
 
-    from gaa.mcp import auth
+    from gtm_analyst.mcp import auth
 
     assert not token_matches("y" * 40, f"Bearer {'y' * 39}")
     assert "compare_digest" in inspect.getsource(auth.token_matches)
@@ -83,7 +83,7 @@ def test_comparison_does_not_short_circuit_on_length() -> None:
 def test_serve_refuses_a_network_transport_before_binding_anything(monkeypatch) -> None:
     """The check must run before the port opens. Refusing after is not
     refusing, and a bound port with a half-built server is worse than either."""
-    import gaa.mcp.server as server_mod
+    import gtm_analyst.mcp.server as server_mod
 
     built = []
     monkeypatch.setattr(server_mod, "build_server",
@@ -97,7 +97,7 @@ def test_serve_refuses_a_network_transport_before_binding_anything(monkeypatch) 
 def test_the_guard_rejects_an_unauthenticated_http_request() -> None:
     import asyncio
 
-    from gaa.mcp.server import bearer_guard
+    from gtm_analyst.mcp.server import bearer_guard
 
     reached = []
 
@@ -120,7 +120,7 @@ def test_the_guard_rejects_an_unauthenticated_http_request() -> None:
 def test_the_guard_admits_a_correctly_authenticated_request() -> None:
     import asyncio
 
-    from gaa.mcp.server import bearer_guard
+    from gtm_analyst.mcp.server import bearer_guard
 
     reached = []
 

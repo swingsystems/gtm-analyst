@@ -23,9 +23,9 @@ from pathlib import Path
 
 import click
 
-from gaa.config import load_settings
-from gaa.connection import session_for_persona
-from gaa.spec.models import Persona
+from gtm_analyst.config import load_settings
+from gtm_analyst.connection import session_for_persona
+from gtm_analyst.spec.models import Persona
 
 ROLES = ("GAA_LOADER", "GAA_FINANCE_GLOBAL", "GAA_SALES_DIR_EMEA", "GAA_REP_INDIVIDUAL")
 PERSONAS = ("FINANCE_GLOBAL", "SALES_DIR_EMEA", "REP_INDIVIDUAL")

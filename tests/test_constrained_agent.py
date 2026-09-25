@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from gaa.agent.runner import ARM_TOOLS, answer
-from gaa.spec.loader import load_spec
+from gtm_analyst.agent.runner import ARM_TOOLS, answer
+from gtm_analyst.spec.loader import load_spec
 
 SPEC = load_spec(Path(__file__).parent.parent / "evals" / "spec")
 CONTRACTS = Path(__file__).parent.parent / "semantic" / "contracts"
@@ -91,7 +91,7 @@ def test_the_card_always_carries_provenance():
 def test_every_arm_gets_the_same_turn_budget():
     """A limit that binds on one arm and not another measures patience rather
     than grounding."""
-    from gaa.agent.runner import MAX_TURNS
+    from gtm_analyst.agent.runner import MAX_TURNS
 
     assert MAX_TURNS >= 12, "too tight for an arm that has to explore a schema"
 
@@ -101,7 +101,7 @@ def test_turn_exhaustion_is_reported_not_disguised(monkeypatch):
     """An agent stopped mid-investigation has not answered. Presenting its last
     probe as the result would put an exploratory number into a cell the scorer
     treats as final."""
-    from gaa.agent import runner
+    from gtm_analyst.agent import runner
 
     monkeypatch.setattr(runner, "MAX_TURNS", 1)
     card = runner.answer(QUESTIONS["q011"].text, SPEC.personas["FINANCE_GLOBAL"],

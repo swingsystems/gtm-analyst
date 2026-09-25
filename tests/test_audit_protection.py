@@ -10,7 +10,7 @@ import stat
 
 import pytest
 
-from gaa.mcp.audit import MAX_BYTES, AuditEntry, AuditLog
+from gtm_analyst.mcp.audit import MAX_BYTES, AuditEntry, AuditLog
 
 
 def _entry(tool: str = "query_metric") -> AuditEntry:

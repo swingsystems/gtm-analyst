@@ -10,9 +10,9 @@ what comes back, and a Snowflake resource monitor on the warehouse itself.
 """
 import pytest
 
-from gaa.config import Settings
-from gaa.connection import session_parameters_for
-from gaa.spec.models import Persona
+from gtm_analyst.config import Settings
+from gtm_analyst.connection import session_parameters_for
+from gtm_analyst.spec.models import Persona
 
 PERSONA = Persona(
     name="REP_INDIVIDUAL", snowflake_role="GAA_REP_INDIVIDUAL",
@@ -40,15 +40,15 @@ def test_a_statement_timeout_is_always_set() -> None:
 def test_the_timeout_is_configurable_but_cannot_be_disabled() -> None:
     """Zero means 'no limit' to Snowflake. Accepting it from configuration
     would let an env var silently remove the cap."""
-    params = session_parameters_for(PERSONA, _settings(GAA_STATEMENT_TIMEOUT_SECONDS="45"))
+    params = session_parameters_for(PERSONA, _settings(GTM_STATEMENT_TIMEOUT_SECONDS="45"))
     assert params["STATEMENT_TIMEOUT_IN_SECONDS"] == "45"
     with pytest.raises(ValueError, match="timeout"):
-        _settings(GAA_STATEMENT_TIMEOUT_SECONDS="0")
+        _settings(GTM_STATEMENT_TIMEOUT_SECONDS="0")
 
 
 def test_the_query_tag_still_identifies_the_persona() -> None:
     """Adding caps must not cost the attribution that makes spend traceable."""
-    assert session_parameters_for(PERSONA, _settings())["QUERY_TAG"] == "gaa:REP_INDIVIDUAL"
+    assert session_parameters_for(PERSONA, _settings())["QUERY_TAG"] == "gtm-analyst:REP_INDIVIDUAL"
 
 
 def test_a_row_cap_exists_and_is_positive() -> None:
@@ -57,7 +57,7 @@ def test_a_row_cap_exists_and_is_positive() -> None:
 
 def test_the_row_cap_refuses_a_nonsense_value() -> None:
     with pytest.raises(ValueError, match="max_rows"):
-        _settings(GAA_MAX_ROWS="0")
+        _settings(GTM_MAX_ROWS="0")
 
 
 class _FakeCursor:
@@ -74,9 +74,9 @@ class _FakeCursor:
 
 
 def test_a_result_under_the_cap_is_not_flagged_truncated(monkeypatch) -> None:
-    from gaa.mcp import tools
+    from gtm_analyst.mcp import tools
 
-    monkeypatch.setattr(tools, "load_settings", lambda: _settings(GAA_MAX_ROWS="10"))
+    monkeypatch.setattr(tools, "load_settings", lambda: _settings(GTM_MAX_ROWS="10"))
     rows, truncated = tools._fetch_capped(_FakeCursor(10), ["N"])
     assert len(rows) == 10
     assert truncated is False, "a result exactly at the cap is complete, not truncated"
@@ -86,9 +86,9 @@ def test_a_result_over_the_cap_is_flagged_and_cut(monkeypatch) -> None:
     """The +1 fetch is what distinguishes 'hit the cap' from 'that was all'.
     Without it a truncated answer is indistinguishable from a complete one --
     the same failure as a silent partial answer from a restricted persona."""
-    from gaa.mcp import tools
+    from gtm_analyst.mcp import tools
 
-    monkeypatch.setattr(tools, "load_settings", lambda: _settings(GAA_MAX_ROWS="10"))
+    monkeypatch.setattr(tools, "load_settings", lambda: _settings(GTM_MAX_ROWS="10"))
     rows, truncated = tools._fetch_capped(_FakeCursor(500), ["N"])
     assert len(rows) == 10
     assert truncated is True
@@ -96,8 +96,8 @@ def test_a_result_over_the_cap_is_flagged_and_cut(monkeypatch) -> None:
 
 def test_the_cap_never_returns_more_than_asked(monkeypatch) -> None:
     """The extra row is for detection only and must not reach the caller."""
-    from gaa.mcp import tools
+    from gtm_analyst.mcp import tools
 
-    monkeypatch.setattr(tools, "load_settings", lambda: _settings(GAA_MAX_ROWS="3"))
+    monkeypatch.setattr(tools, "load_settings", lambda: _settings(GTM_MAX_ROWS="3"))
     rows, _ = tools._fetch_capped(_FakeCursor(9), ["N"])
     assert [r["N"] for r in rows] == ["0", "1", "2"]

@@ -57,7 +57,7 @@ showed up in the directory itself.
 ## Adding a variant
 
 1. Write the broken model in `chaos/<name>.sql`.
-2. Register it in `gaa/harness/chaos.py` with its target, rebuild selector, and
+2. Register it in `gtm_analyst/harness/chaos.py` with its target, rebuild selector, and
    what should catch it.
 3. Add a test that plants it, asserts the catch, and asserts the revert.
 4. Run it. **If the detector you predicted does not fire, say so** rather than

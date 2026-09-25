@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from gaa.spec.models import ExpectedResult, Invariant, Persona, Question
-from gaa.spec.taxonomy import FailureCategory
+from gtm_analyst.spec.models import ExpectedResult, Invariant, Persona, Question
+from gtm_analyst.spec.taxonomy import FailureCategory
 
 
 def test_persona_requires_role_and_schema():

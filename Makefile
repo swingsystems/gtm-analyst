@@ -6,10 +6,10 @@ setup:
 	uv sync --all-extras
 
 spec-validate:
-	uv run gaa spec-validate --root evals/spec
+	uv run gtm spec-validate --root evals/spec
 
 lint:
-	uv run ruff check gaa tests scripts
+	uv run ruff check gtm_analyst tests scripts
 
 test:
 	uv run pytest -v
@@ -22,11 +22,11 @@ governance:
 	uv run python scripts/apply_governance.py
 
 viewer:  ## One question, three identities, one self-contained HTML file.
-	uv run gaa viewer
+	uv run gtm viewer
 	@echo "  open results/viewer.html"
 
 demo:  ## No account, no key, no network. Start here.
-	uv run gaa demo
+	uv run gtm demo
 	@echo ""
 	@echo "  open results/demo/summary.md"
 
@@ -34,7 +34,7 @@ demo:  ## No account, no key, no network. Start here.
 # Needs .env and key-pair auth. `make demo` above needs neither; start there.
 
 seed:  ## Generate synthetic CRM seeds. Deterministic, no account needed.
-	uv run gaa synth
+	uv run gtm synth
 
 build:  ## dbt build: models plus every data test. Fails the deploy on a red test.
 	cd warehouse && uv run dbt build

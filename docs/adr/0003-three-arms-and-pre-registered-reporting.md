@@ -6,7 +6,7 @@ Status: Accepted — **committed before the experiment runs**
 This document fixes how the experiment will be reported *before* any result exists. Designing the
 reporting framework after seeing the numbers makes the result unrecoverable however clean it looks,
 so the ordering is load-bearing in the same way the spec-before-models ordering is. `git log` shows
-this landed before `gaa/harness/run.py`.
+this landed before `gtm_analyst/harness/run.py`.
 
 ## Context
 

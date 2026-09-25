@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from gaa.harness.chaos import VARIANTS, chaos, dbt_tests_pass
-from gaa.runner.reference import run_reference
-from gaa.spec.loader import load_spec
+from gtm_analyst.harness.chaos import VARIANTS, chaos, dbt_tests_pass
+from gtm_analyst.runner.reference import run_reference
+from gtm_analyst.spec.loader import load_spec
 
 SPEC_ROOT = Path(__file__).parent.parent / "evals" / "spec"
 SPEC = load_spec(SPEC_ROOT)

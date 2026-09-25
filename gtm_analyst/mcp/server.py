@@ -7,16 +7,16 @@ wire.
 
 Run one server per persona:
 
-    gaa serve --persona SALES_DIR_EMEA
+    gtm serve --persona SALES_DIR_EMEA
 """
 import inspect
 from pathlib import Path
 
 from mcp.server import MCPServer
 
-from gaa.mcp.auth import require_token_for_transport, token_matches
-from gaa.mcp.tools import ToolSurface
-from gaa.spec.loader import load_spec
+from gtm_analyst.mcp.auth import require_token_for_transport, token_matches
+from gtm_analyst.mcp.tools import ToolSurface
+from gtm_analyst.spec.loader import load_spec
 
 DEFAULT_SPEC_ROOT = Path("evals/spec")
 
@@ -39,7 +39,7 @@ def build_server(
 
     surface = ToolSurface(spec.personas[persona_name], contracts_root, audit_path=audit_path)
     server = MCPServer(
-        name=f"gaa-{persona_name.lower()}",
+        name=f"gtm-analyst-{persona_name.lower()}",
         instructions=(
             f"Governed analytics for the {persona_name} persona. Every query runs as "
             f"that identity and returns only what it is permitted to see. Start with "
@@ -79,7 +79,7 @@ def bearer_guard(app, expected: str):
                         (b"content-type", b"application/json"),
                         # RFC 7235 requires this on a 401. Its absence is how a
                         # client learns nothing about why it was refused.
-                        (b"www-authenticate", b'Bearer realm="gaa"'),
+                        (b"www-authenticate", b'Bearer realm="gtm-analyst"'),
                     ],
                 })
                 await send({"type": "http.response.body", "body": b'{"error":"unauthorized"}'})

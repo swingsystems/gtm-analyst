@@ -1,6 +1,6 @@
 import pytest
 
-from gaa.semantic.loader import ContractError, load_contracts
+from gtm_analyst.semantic.loader import ContractError, load_contracts
 
 GOOD = """
 name: bookings_amount

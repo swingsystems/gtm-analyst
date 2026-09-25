@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from gaa.semantic.models import MetricContract
+from gtm_analyst.semantic.models import MetricContract
 
 
 class ContractError(Exception):

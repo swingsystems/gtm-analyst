@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from gaa.mcp.tools import ToolError, ToolSurface
-from gaa.spec.loader import load_spec
+from gtm_analyst.mcp.tools import ToolError, ToolSurface
+from gtm_analyst.spec.loader import load_spec
 
 SPEC = load_spec(Path(__file__).parent.parent / "evals" / "spec")
 CONTRACTS = Path(__file__).parent.parent / "semantic" / "contracts"
@@ -77,14 +77,14 @@ def test_every_tool_has_a_docstring_the_server_can_publish():
 def test_the_server_binds_a_persona_at_construction():
     """One server per persona. An agent connects to a server already bound to
     one identity, with no protocol-level way to ask for another."""
-    from gaa.mcp.server import build_server
+    from gtm_analyst.mcp.server import build_server
 
     server = build_server("SALES_DIR_EMEA", CONTRACTS)
     assert "sales_dir_emea" in server.name
 
 
 def test_the_server_refuses_an_unknown_persona():
-    from gaa.mcp.server import build_server
+    from gtm_analyst.mcp.server import build_server
 
     with pytest.raises(ValueError, match="unknown persona"):
         build_server("SUPERUSER", CONTRACTS)
@@ -95,7 +95,7 @@ async def test_the_server_publishes_every_tool_with_a_description():
     """A tool published without a description is one the agent will use wrongly,
     and a constrained arm handicapped by poor tool docs would underperform for
     reasons that have nothing to do with semantic grounding."""
-    from gaa.mcp.server import build_server
+    from gtm_analyst.mcp.server import build_server
 
     tools = await build_server("FINANCE_GLOBAL", CONTRACTS).list_tools()
     assert {t.name for t in tools} == set(ToolSurface.TOOLS)
@@ -108,7 +108,7 @@ async def test_no_published_tool_accepts_a_role_or_schema_argument():
     """The structural guarantee, carried out to the protocol boundary. Schemas
     are derived from real method signatures, so this cannot drift from what the
     surface actually accepts."""
-    from gaa.mcp.server import build_server
+    from gtm_analyst.mcp.server import build_server
 
     forbidden = {"persona", "role", "schema", "user", "snowflake_role"}
     tools = await build_server("FINANCE_GLOBAL", CONTRACTS).list_tools()

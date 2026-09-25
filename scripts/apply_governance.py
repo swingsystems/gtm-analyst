@@ -4,7 +4,7 @@ Every statement must be re-runnable: CREATE ... IF NOT EXISTS, CREATE OR REPLACE
 or a GRANT. dbt recreates tables and drops dependent views, so this is run after
 every build rather than once.
 
-This is the ONLY privileged code path in the repository. Nothing under gaa/ may
+This is the ONLY privileged code path in the repository. Nothing under gtm_analyst/ may
 use SYSADMIN or SECURITYADMIN, and the bypass suite asserts that separation.
 """
 import json
@@ -14,11 +14,11 @@ from pathlib import Path
 
 import click
 
-from gaa.config import load_settings
-from gaa.connection import public_key_body, session_for_persona
-from gaa.spec.models import Persona
-from gaa.spec.sql import sql_statements
-from gaa.spec.template import render
+from gtm_analyst.config import load_settings
+from gtm_analyst.connection import public_key_body, session_for_persona
+from gtm_analyst.spec.models import Persona
+from gtm_analyst.spec.sql import sql_statements
+from gtm_analyst.spec.template import render
 
 GOVERNANCE_DIR = Path(__file__).parent.parent / "warehouse" / "governance"
 LINEAGE_PATH = GOVERNANCE_DIR / "lineage.json"

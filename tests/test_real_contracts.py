@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from gaa.semantic.loader import load_contracts
+from gtm_analyst.semantic.loader import load_contracts
 
 CONTRACTS = Path(__file__).parent.parent / "semantic" / "contracts"
 
@@ -105,8 +105,8 @@ def test_the_declared_columns_match_the_live_views(contracts):
     if not os.environ.get("SNOWFLAKE_ACCOUNT"):
         pytest.skip("no Snowflake credentials")
 
-    from gaa.connection import session_for_persona
-    from gaa.spec.loader import load_spec
+    from gtm_analyst.connection import session_for_persona
+    from gtm_analyst.spec.loader import load_spec
 
     spec = load_spec(Path(__file__).parent.parent / "evals" / "spec")
     with session_for_persona(spec.personas["FINANCE_GLOBAL"]) as conn:

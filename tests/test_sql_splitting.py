@@ -1,4 +1,4 @@
-from gaa.spec.sql import sql_statements, strip_line_comments
+from gtm_analyst.spec.sql import sql_statements, strip_line_comments
 
 
 def test_semicolon_in_a_comment_does_not_split_the_statement():

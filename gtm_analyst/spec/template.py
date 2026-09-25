@@ -6,7 +6,7 @@ interpolated as text. That is the one place in this repository where string
 interpolation into SQL is unavoidable, and it is therefore the one place where
 *validation* is the control rather than a supplement to it.
 
-Everywhere else -- the whole query path in gaa.semantic.compile -- caller values
+Everywhere else -- the whole query path in gtm_analyst.semantic.compile -- caller values
 bind server-side and are deliberately not sanitised, because sanitising invites
 treating validation as the defence. The distinction is worth keeping straight:
 here there is no binding to fall back on, so values must be bare identifiers and

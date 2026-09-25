@@ -11,7 +11,7 @@ an answer turns the demo into a claim about behaviour that was never observed.
 import json
 from pathlib import Path
 
-from gaa.agent.card import AnswerCard
+from gtm_analyst.agent.card import AnswerCard
 
 
 def _key(question_id: str, persona: str, arm: str) -> str:
@@ -45,6 +45,6 @@ class MockAgent:
         if key not in self.recorded:
             raise KeyError(
                 f"no recorded run for {key}. The mock replays observed behaviour and "
-                f"will not invent an answer; record it with gaa record-runs."
+                f"will not invent an answer; record it with gtm record-runs."
             )
         return self.recorded[key]

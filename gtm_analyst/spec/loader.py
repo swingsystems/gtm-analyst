@@ -4,7 +4,7 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
-from gaa.spec.models import Invariant, Persona, Question
+from gtm_analyst.spec.models import Invariant, Persona, Question
 
 
 class SpecError(Exception):

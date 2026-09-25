@@ -14,10 +14,10 @@ patches. The layers are separable on purpose:
 |---|---|
 | `warehouse/` | dbt models, the fiscal calendar, seed generation |
 | `warehouse/governance/` | roles, grants, persona views — **the security boundary** |
-| `gaa/semantic/` | metric contracts and the compiler |
-| `gaa/mcp/` | the tool surface, the other half of the boundary |
-| `gaa/agent/` | the three arms and the answer card |
-| `gaa/harness/` | scorer, chaos suite, experiment |
+| `gtm_analyst/semantic/` | metric contracts and the compiler |
+| `gtm_analyst/mcp/` | the tool surface, the other half of the boundary |
+| `gtm_analyst/agent/` | the three arms and the answer card |
+| `gtm_analyst/harness/` | scorer, chaos suite, experiment |
 
 Governance and the tool surface are where a mistake becomes a breach rather than
 a bug. Everything else is recoverable.
@@ -58,12 +58,12 @@ Three scorer bugs have been found here, and **two of them flattered the thesis**
 The measurement is the deliverable, so a change that makes the results look
 better is the change most likely to be wrong.
 
-If you touch `gaa/harness/score.py`:
+If you touch `gtm_analyst/harness/score.py`:
 
 - Add the failing case as a test first, using **real recorded output** from
   `results/*/cards.json`, not only synthetic rows. All three bugs survived
   synthetic tests and died against real cards.
-- Run `gaa rescore --cards results/pilot2/cards.json --out /tmp/check` and say
+- Run `gtm rescore --cards results/pilot2/cards.json --out /tmp/check` and say
   in your PR which cells moved and why. Rescoring needs no credentials.
 - If a change improves an arm's numbers, explain why that is a fix rather than a
   new bias in a new direction.

@@ -2,9 +2,9 @@
 from collections import Counter
 from pathlib import Path
 
-from gaa.spec.loader import load_spec
-from gaa.spec.sql import sql_statements
-from gaa.spec.taxonomy import FailureCategory
+from gtm_analyst.spec.loader import load_spec
+from gtm_analyst.spec.sql import sql_statements
+from gtm_analyst.spec.taxonomy import FailureCategory
 
 SPEC_ROOT = Path(__file__).parent.parent / "evals" / "spec"
 

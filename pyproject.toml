@@ -1,7 +1,7 @@
 [project]
-name = "gaa"
+name = "gtm-analyst"
 version = "0.1.0"
-description = "Safe, auditable analytics agents on Snowflake"
+description = "A GTM analyst you can audit: governed analytics agents on Snowflake"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -30,7 +30,7 @@ dependencies = [
 dev = ["pytest>=8.0", "ruff>=0.6", "dbt-core>=1.8", "dbt-snowflake>=1.8"]
 
 [project.scripts]
-gaa = "gaa.cli:cli"
+gtm = "gtm_analyst.cli:cli"
 
 [tool.ruff]
 line-length = 100

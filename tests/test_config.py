@@ -1,7 +1,7 @@
 
 import pytest
 
-from gaa.config import load_settings
+from gtm_analyst.config import load_settings
 
 
 def test_load_settings_reads_environment(monkeypatch, tmp_path):

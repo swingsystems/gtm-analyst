@@ -8,8 +8,8 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from itertools import pairwise
 
-from gaa.runner.reference import ReferenceResult
-from gaa.spec.models import Invariant
+from gtm_analyst.runner.reference import ReferenceResult
+from gtm_analyst.spec.models import Invariant
 
 Results = dict[tuple[str, str], ReferenceResult]
 

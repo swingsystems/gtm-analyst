@@ -13,7 +13,7 @@ import random
 from datetime import date, timedelta
 from decimal import Decimal
 
-from gaa.synth.profile import AccountsProfile, DatasetProfile
+from gtm_analyst.synth.profile import AccountsProfile, DatasetProfile
 
 CENTS = Decimal("0.01")
 

@@ -14,12 +14,12 @@ jobs:
           fetch-depth: 0  # full history: test_spec_predates_models inspects git log
       - uses: astral-sh/setup-uv@v3
       - run: uv sync --all-extras
-      - run: uv run ruff check gaa tests scripts
-      - run: uv run gaa spec-validate --root evals/spec
+      - run: uv run ruff check gtm_analyst tests scripts
+      - run: uv run gtm spec-validate --root evals/spec
       - run: uv run pytest -v
       # The no-account path is the adoption gate. If it breaks, the project is
       # unreachable for anyone who has not already bought in.
-      - run: uv run gaa demo
+      - run: uv run gtm demo
 
       - name: State plainly what this job did NOT verify
         run: |
@@ -66,7 +66,7 @@ jobs:
           printf '%s' "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > /tmp/key.p8
           chmod 600 /tmp/key.p8
           uv run pytest -v tests/test_governance_boundary.py
-          uv run gaa check-invariants --root evals/spec
+          uv run gtm check-invariants --root evals/spec
           # Last: it rebuilds models and takes minutes. A boundary failure
           # should report before the slow job starts.
           uv run pytest -v tests/test_chaos.py

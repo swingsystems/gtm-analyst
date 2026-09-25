@@ -10,14 +10,14 @@ import re
 from pathlib import Path
 from typing import Any
 
-from gaa.config import load_settings
-from gaa.connection import session_for_persona
-from gaa.mcp.audit import AuditEntry, AuditLog
-from gaa.runner.reference import normalise
-from gaa.semantic.compile import CompileError, QueryRequest, compile_query
-from gaa.semantic.loader import ContractSet, load_contracts
-from gaa.spec.models import Persona
-from gaa.spec.sql import sql_statements, strip_line_comments
+from gtm_analyst.config import load_settings
+from gtm_analyst.connection import session_for_persona
+from gtm_analyst.mcp.audit import AuditEntry, AuditLog
+from gtm_analyst.runner.reference import normalise
+from gtm_analyst.semantic.compile import CompileError, QueryRequest, compile_query
+from gtm_analyst.semantic.loader import ContractSet, load_contracts
+from gtm_analyst.spec.models import Persona
+from gtm_analyst.spec.sql import sql_statements, strip_line_comments
 
 # An ALLOW-list, not a deny-list. A list of forbidden keywords is defeated by
 # the first keyword nobody thought to forbid; a list of permitted leaders fails

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from gaa.semantic.models import Aggregation, Dimension, Measure, MetricContract
+from gtm_analyst.semantic.models import Aggregation, Dimension, Measure, MetricContract
 
 
 def _contract(**overrides):

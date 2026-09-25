@@ -10,10 +10,10 @@ from pathlib import Path
 
 import click
 
-from gaa.config import load_settings
-from gaa.connection import session_for_persona
-from gaa.spec.sql import sql_statements
-from gaa.spec.template import render
+from gtm_analyst.config import load_settings
+from gtm_analyst.connection import session_for_persona
+from gtm_analyst.spec.sql import sql_statements
+from gtm_analyst.spec.template import render
 from scripts.apply_governance import ADMIN, _substitutions
 
 TEARDOWN = Path(__file__).parent.parent / "warehouse" / "governance" / "teardown.sql"

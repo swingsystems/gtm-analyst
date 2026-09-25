@@ -9,8 +9,8 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gaa.agent.card import AnswerCard
-from gaa.harness.score import _numeric_total
+from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.harness.score import _numeric_total
 
 
 class DemoError(Exception):
@@ -29,7 +29,7 @@ def _load(cards_path: Path) -> list[tuple[str, AnswerCard]]:
     if not Path(cards_path).exists():
         raise DemoError(
             f"no recorded cards at {cards_path}. The demo replays observed runs and "
-            "will not invent them; record with `gaa experiment` or `gaa record-runs`."
+            "will not invent them; record with `gtm experiment` or `gtm record-runs`."
         )
     payload = json.loads(Path(cards_path).read_text())
     loaded = []

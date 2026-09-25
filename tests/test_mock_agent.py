@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from gaa.agent.card import AnswerCard
-from gaa.agent.mock import MockAgent, record_run
+from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.agent.mock import MockAgent, record_run
 
 FIXTURES = Path(__file__).parent.parent / "fixtures" / "mock_runs"
 

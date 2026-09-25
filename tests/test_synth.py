@@ -1,8 +1,8 @@
 from decimal import Decimal
 from pathlib import Path
 
-from gaa.synth.generate import generate
-from gaa.synth.profile import load_profile
+from gtm_analyst.synth.generate import generate
+from gtm_analyst.synth.profile import load_profile
 
 PROFILE = Path(__file__).parent.parent / "warehouse" / "seeds" / "profile.yaml"
 

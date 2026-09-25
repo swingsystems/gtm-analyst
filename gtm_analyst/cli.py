@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 import yaml
 
-from gaa.spec.loader import SpecError, load_spec
+from gtm_analyst.spec.loader import SpecError, load_spec
 
 DEFAULT_SPEC_ROOT = Path("evals/spec")
 
@@ -39,8 +39,8 @@ def spec_validate(root: Path) -> None:
 @click.option("--out", type=click.Path(path_type=Path), default=Path("warehouse/seeds"))
 def synth(profile: Path, out: Path) -> None:
     """Generate synthetic seed data from a profile. Deterministic for a given seed."""
-    from gaa.synth.generate import generate
-    from gaa.synth.profile import ProfileError, load_profile
+    from gtm_analyst.synth.generate import generate
+    from gtm_analyst.synth.profile import ProfileError, load_profile
 
     try:
         spec = load_profile(profile)
@@ -71,7 +71,7 @@ def capture_expected(root: Path, dry_run: bool) -> None:
     Fills the `expected` blocks ONLY. Question text and reference SQL are frozen
     at the spec commit; this command must never modify them.
     """
-    from gaa.runner.reference import run_reference
+    from gtm_analyst.runner.reference import run_reference
 
     spec = load_spec(root)
     for question in spec.questions:
@@ -108,8 +108,8 @@ def _write_expected(path: Path, expected: list[dict]) -> None:
 @click.option("--root", type=click.Path(path_type=Path), default=DEFAULT_SPEC_ROOT)
 def check_invariants(root: Path) -> None:
     """Run every question as every persona, then evaluate all invariants."""
-    from gaa.runner.invariants import check_invariant
-    from gaa.runner.reference import run_reference
+    from gtm_analyst.runner.invariants import check_invariant
+    from gtm_analyst.runner.reference import run_reference
 
     spec = load_spec(root)
     results, repeats = {}, {}
@@ -155,8 +155,8 @@ def record_runs(root: Path, out: Path, questions: str, contracts: Path) -> None:
     These are committed and reviewed, so they must be genuine. Anything invented
     here would make the tier-0 demo a claim about behaviour nobody observed.
     """
-    from gaa.agent.mock import record_run
-    from gaa.agent.runner import ARM_TOOLS, answer
+    from gtm_analyst.agent.mock import record_run
+    from gtm_analyst.agent.runner import ARM_TOOLS, answer
 
     spec = load_spec(root)
     by_id = {q.id: q for q in spec.questions}
@@ -186,8 +186,8 @@ def record_runs(root: Path, out: Path, questions: str, contracts: Path) -> None:
 def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str,
                resume_from: Path | None) -> None:
     """Run the experiment and write the pre-registered report."""
-    from gaa.agent.runner import ARM_TOOLS
-    from gaa.harness.run import run_experiment, write_results
+    from gtm_analyst.agent.runner import ARM_TOOLS
+    from gtm_analyst.harness.run import run_experiment, write_results
 
     arm_list = [a.strip() for a in arms.split(",") if a.strip()] or sorted(ARM_TOOLS)
     question_ids = [q.strip() for q in questions.split(",") if q.strip()] or None
@@ -211,9 +211,9 @@ def rescore(root: Path, cards: Path, out: Path) -> None:
     scorer, re-run this, and see what moves -- without an API key, a warehouse,
     or the budget to reproduce the runs.
     """
-    from gaa.agent.card import AnswerCard
-    from gaa.harness.run import ALL_REGIONS, PERMITTED_REGIONS, write_results
-    from gaa.harness.score import score_answer
+    from gtm_analyst.agent.card import AnswerCard
+    from gtm_analyst.harness.run import ALL_REGIONS, PERMITTED_REGIONS, write_results
+    from gtm_analyst.harness.score import score_answer
 
     spec = load_spec(root)
     by_id = {q.id: q for q in spec.questions}
@@ -246,13 +246,13 @@ def serve_cmd(persona: str, contracts: Path, audit: Path | None, transport: str)
     no protocol-level way to ask for a different identity.
 
     stdio needs no credential -- the pipe comes from a process you started. A
-    network transport refuses to start without GAA_MCP_TOKEN, because over the
+    network transport refuses to start without GTM_MCP_TOKEN, because over the
     network the persona this server is bound to is whoever can reach the port.
     """
-    from gaa.mcp.auth import AuthError
-    from gaa.mcp.server import serve
+    from gtm_analyst.mcp.auth import AuthError
+    from gtm_analyst.mcp.server import serve
 
-    token = os.environ.get("GAA_MCP_TOKEN") or None
+    token = os.environ.get("GTM_MCP_TOKEN") or None
     try:
         serve(persona, contracts, audit, transport=transport, token=token)
     except AuthError as exc:
@@ -267,7 +267,7 @@ def serve_cmd(persona: str, contracts: Path, audit: Path | None, transport: str)
 @click.option("--out", type=click.Path(path_type=Path), default=Path("results/viewer.html"))
 def viewer(cards: Path, question: str, out: Path) -> None:
     """Render one question, three identities, into a self-contained page."""
-    from gaa.viewer.build import build_page, load_cards
+    from gtm_analyst.viewer.build import build_page, load_cards
 
     page = build_page(load_cards(cards), question)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -281,7 +281,7 @@ def viewer(cards: Path, question: str, out: Path) -> None:
 @click.option("--out", type=click.Path(path_type=Path), default=Path("results/demo"))
 def demo(cards: Path, out: Path) -> None:
     """Replay recorded runs. No Snowflake account, no API key, no network."""
-    from gaa.demo.run import DemoError, run_demo
+    from gtm_analyst.demo.run import DemoError, run_demo
 
     try:
         result = run_demo(cards, out)

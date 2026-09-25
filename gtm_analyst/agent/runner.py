@@ -6,7 +6,7 @@ separate loops would drift, and every difference between them would be measured
 as if it were a property of the architecture.
 
 Tools are called directly on the ToolSurface rather than over MCP. The MCP
-server in gaa/mcp/server.py wraps this same surface and exists for external
+server in gtm_analyst/mcp/server.py wraps this same surface and exists for external
 agents; routing the experiment through a subprocess would add moving parts
 without changing what is being measured.
 """
@@ -19,10 +19,10 @@ from typing import Any
 import anthropic
 from snowflake.connector.errors import Error as SnowflakeError
 
-from gaa.agent.card import AnswerCard
-from gaa.agent.prompts import system_prompt
-from gaa.mcp.tools import ToolError, ToolSurface
-from gaa.spec.models import Persona
+from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.agent.prompts import system_prompt
+from gtm_analyst.mcp.tools import ToolError, ToolSurface
+from gtm_analyst.spec.models import Persona
 
 MODEL = "claude-sonnet-5"
 

@@ -17,8 +17,8 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 
-from gaa.agent.card import AnswerCard
-from gaa.spec.taxonomy import FailureCategory
+from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.spec.taxonomy import FailureCategory
 
 Rows = list[dict[str, str]]
 

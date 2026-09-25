@@ -53,7 +53,7 @@ spec forced the *data* to be fixed rather than the expectation quietly lowered.
 categories have different causes and different fixes, and an aggregate hides the
 one getting worse.
 
-`gaa check-invariants` runs metamorphic properties: global equals the sum of
+`gtm check-invariants` runs metamorphic properties: global equals the sum of
 regions, rep ≤ region ≤ global, masking changes values but never row counts.
 These catch a **wrong oracle**, which matters because you wrote the oracle.
 

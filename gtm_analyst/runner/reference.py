@@ -8,9 +8,9 @@ from dataclasses import dataclass
 from decimal import Decimal
 from pathlib import Path
 
-from gaa.connection import session_for_persona
-from gaa.spec.models import Persona, Question
-from gaa.spec.sql import sql_statements
+from gtm_analyst.connection import session_for_persona
+from gtm_analyst.spec.models import Persona, Question
+from gtm_analyst.spec.sql import sql_statements
 
 
 @dataclass(frozen=True)

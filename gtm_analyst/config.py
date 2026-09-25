@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     snowflake_user: str = Field(alias="SNOWFLAKE_USER")
     # When set, each persona connects as "<prefix><PERSONA_NAME>" instead of the
     # operator. Those service users hold exactly one role each, which is what
-    # makes the boundary real -- see gaa.connection.user_for_persona.
+    # makes the boundary real -- see gtm_analyst.connection.user_for_persona.
     snowflake_service_user_prefix: str | None = Field(
         default=None, alias="SNOWFLAKE_SERVICE_USER_PREFIX"
     )
@@ -29,11 +29,11 @@ class Settings(BaseSettings):
     # project's own experiment was halted by a spending limit -- the same class
     # of problem from the other side.
     gaa_statement_timeout_seconds: int = Field(default=120,
-                                               alias="GAA_STATEMENT_TIMEOUT_SECONDS")
-    gaa_max_rows: int = Field(default=5000, alias="GAA_MAX_ROWS")
-    gaa_credit_quota: int = Field(default=50, alias="GAA_CREDIT_QUOTA")
-    # Required only for network MCP transports; stdio needs none. See gaa/mcp/auth.py.
-    gaa_mcp_token: str | None = Field(default=None, alias="GAA_MCP_TOKEN")
+                                               alias="GTM_STATEMENT_TIMEOUT_SECONDS")
+    gaa_max_rows: int = Field(default=5000, alias="GTM_MAX_ROWS")
+    gaa_credit_quota: int = Field(default=50, alias="GTM_CREDIT_QUOTA")
+    # Required only for network MCP transports; stdio needs none. See gtm_analyst/mcp/auth.py.
+    gaa_mcp_token: str | None = Field(default=None, alias="GTM_MCP_TOKEN")
 
     @field_validator("gaa_statement_timeout_seconds")
     @classmethod

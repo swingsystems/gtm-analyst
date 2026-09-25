@@ -22,7 +22,7 @@ names anywhere in this directory would quietly destroy it.
 
 ## Expected values are empty until the warehouse exists
 
-Every `expected` block ships as empty row lists. They are populated by `gaa capture-expected` once
+Every `expected` block ships as empty row lists. They are populated by `gtm capture-expected` once
 the warehouse is built, which executes each reference query as each persona and writes back what it
 actually returned.
 
