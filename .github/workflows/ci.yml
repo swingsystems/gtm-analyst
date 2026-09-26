@@ -38,6 +38,12 @@ jobs:
   # visibly absent rather than silently green.
   warehouse:
     runs-on: ubuntu-latest
+    # The chaos suite breaks and rebuilds real tables, so two runs against one
+    # database race and produce failures that look like flaky detection. Never
+    # cancel in progress: a cancelled run leaves a planted defect live.
+    concurrency:
+      group: warehouse-${{ github.repository }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3

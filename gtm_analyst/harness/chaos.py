@@ -1,5 +1,11 @@
 """Apply a known defect, confirm the harness notices, put it back.
 
+**These mutate a shared warehouse.** Each variant rebuilds real tables, so two
+runs against the same database race: one restores what the other just broke, and
+the failures look like flaky detection rather than a collision. The CI workflow
+serialises the warehouse job for this reason, and a chaos run should never share
+a database with anything a person is using.
+
 A guard nobody has watched fail is not a guard. These variants exist so the
 catch rate is measured rather than assumed, and because this project has
 already shipped one of them for real: `calendar_too_short` is the bug committed
@@ -88,7 +94,22 @@ def chaos(name: str, rebuild: bool = True):
         shutil.copy2(backup, variant.target)
         backup.unlink()
         if rebuild:
-            _dbt("run", "--select", variant.rebuild)
+            restored = _dbt("run", "--select", variant.rebuild)
+            # Checked, not fired and forgotten. An unchecked restore leaves a
+            # deliberately broken model live in a shared warehouse, where the
+            # next thing to read it sees a real-looking defect with no
+            # explanation -- which is worse than the failure being tested.
+            if restored.returncode != 0:
+                raise RestoreFailed(
+                    f"{name} was applied but could NOT be reverted; "
+                    f"{variant.target.name} is live and broken in the warehouse. "
+                    f"Rebuild with: dbt run --select {variant.rebuild}\n"
+                    f"{(restored.stdout + restored.stderr).strip()[-600:]}"
+                )
+
+
+class RestoreFailed(RuntimeError):
+    """A planted defect could not be reverted. The warehouse is left broken."""
 
 
 class DbtUnavailable(RuntimeError):
