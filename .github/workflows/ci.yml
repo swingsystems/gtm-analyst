@@ -1,6 +1,11 @@
 name: ci
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  # Lets the credentialed run be re-triggered without an empty commit, which
+  # matters when the thing being tested is whether the secrets work.
+  workflow_dispatch:
 
 jobs:
   # Everything that needs no account. This is the gate a fork gets for free,
