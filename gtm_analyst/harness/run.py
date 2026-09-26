@@ -10,10 +10,12 @@ them.
 import json
 from collections import Counter, defaultdict
 from dataclasses import asdict
+from datetime import UTC, datetime
 from pathlib import Path
 
 from gtm_analyst.agent.card import AnswerCard
 from gtm_analyst.agent.runner import ARM_TOOLS, DEFAULT_MODELS, answer
+from gtm_analyst.harness.integrity import canary_checker
 from gtm_analyst.harness.score import Outcome, RefusalKind, Score, score_answer
 from gtm_analyst.spec.loader import Spec, load_spec
 
@@ -73,9 +75,15 @@ def run_experiment(
             key = (record["_question_id"], record["persona"], record["arm"])
             done[key] = record
 
+    # Checked before every question, not once at the start. A concurrent
+    # rebuild lands mid-run, and a single check at the top proves only that the
+    # warehouse was healthy before anything mattered.
+    check_warehouse = canary_checker(spec_root, spec)
+
     scores: list[Score] = []
     cards: list[dict] = []
     for question in questions:
+        check_warehouse()
         for persona_name, persona in spec.personas.items():
             truth = next(e.rows for e in question.expected if e.persona == persona_name)
             for arm in arms:
@@ -88,7 +96,14 @@ def run_experiment(
                     card = answer(question.text, persona, arm, contracts_root,
                                   audit_path=audit_path,
                                   provider=provider, model=model)
-                cards.append({**card.model_dump(), "_question_id": question.id})
+                cards.append({
+                    **card.model_dump(),
+                    "_question_id": question.id,
+                    # So a contamination window can be scoped after the fact.
+                    # The grid that got corrupted carried no timestamps, which
+                    # is why none of its cells could be individually cleared.
+                    "_recorded_at": datetime.now(tz=UTC).isoformat(timespec="seconds"),
+                })
                 scores.append(score_answer(
                     card, truth, PERMITTED_REGIONS[persona_name], question.id, ALL_REGIONS
                 ))
