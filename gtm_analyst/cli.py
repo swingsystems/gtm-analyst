@@ -182,9 +182,13 @@ def record_runs(root: Path, out: Path, questions: str, contracts: Path) -> None:
 @click.option("--arms", default="", help="comma-separated arms; default all three")
 @click.option("--resume-from", type=click.Path(path_type=Path), default=None,
               help="replay recorded cards for cells already run; call the model "
-                   "only for the rest")
+                   "only for the rest. Only cells from the SAME model are reused")
+@click.option("--provider", default="anthropic",
+              type=click.Choice(["anthropic", "openai"]),
+              help="model backend. Grids from different providers must never be merged")
+@click.option("--model", default=None, help="override the provider's default model")
 def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str,
-               resume_from: Path | None) -> None:
+               resume_from: Path | None, provider: str, model: str | None) -> None:
     """Run the experiment and write the pre-registered report."""
     from gtm_analyst.agent.runner import ARM_TOOLS
     from gtm_analyst.harness.run import run_experiment, write_results
@@ -195,7 +199,8 @@ def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str
     scores = run_experiment(root, contracts, arm_list, question_ids,
                             audit_path=out / "audit.jsonl",
                             cards_path=out / "cards.json",
-                            resume_from=resume_from)
+                            resume_from=resume_from,
+                            provider=provider, model=model)
     from gtm_analyst.harness.run import _LAST_CARDS
 
     write_results(scores, arm_list, out, cards=list(_LAST_CARDS))

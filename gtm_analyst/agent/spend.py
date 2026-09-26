@@ -46,6 +46,21 @@ PRICES: dict[str, Price] = {
         cache_write_per_mtok=Decimal("18.75"),
         cache_read_per_mtok=Decimal("1.50"),
     ),
+    # OpenAI. Published rates at the time of the run; cache reads are billed at
+    # a discount and reported inside prompt_tokens, which the provider adapter
+    # subtracts out rather than double counting.
+    "gpt-4.1": Price(
+        input_per_mtok=Decimal("2.00"),
+        output_per_mtok=Decimal("8.00"),
+        cache_write_per_mtok=Decimal("2.00"),
+        cache_read_per_mtok=Decimal("0.50"),
+    ),
+    "gpt-4o": Price(
+        input_per_mtok=Decimal("2.50"),
+        output_per_mtok=Decimal("10.00"),
+        cache_write_per_mtok=Decimal("2.50"),
+        cache_read_per_mtok=Decimal("1.25"),
+    ),
     "claude-haiku-4-5-20251001": Price(
         input_per_mtok=Decimal("1.00"),
         output_per_mtok=Decimal("5.00"),

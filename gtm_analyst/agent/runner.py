@@ -21,11 +21,16 @@ from snowflake.connector.errors import Error as SnowflakeError
 
 from gtm_analyst.agent.card import AnswerCard
 from gtm_analyst.agent.prompts import system_prompt
+from gtm_analyst.agent.providers import provider_for
 from gtm_analyst.agent.spend import Spend
 from gtm_analyst.mcp.tools import ToolError, ToolSurface
 from gtm_analyst.spec.models import Persona
 
 MODEL = "claude-sonnet-5"
+
+# The default model per provider. Named explicitly so a run records which model
+# produced it rather than inheriting whatever the SDK considers current.
+DEFAULT_MODELS = {"anthropic": MODEL, "openai": "gpt-4.1"}
 
 # Every arm gets the SAME budget. A turn limit that binds on one arm and not
 # another measures patience rather than grounding. Raised from 8 after watching
@@ -90,39 +95,58 @@ def answer(
     contracts_root: Path,
     audit_path: Path | None = None,
     client: anthropic.Anthropic | None = None,
+    provider: str = "anthropic",
+    model: str | None = None,
 ) -> AnswerCard:
-    """Answer one question as one persona, using one arm's tools."""
+    """Answer one question as one persona, using one arm's tools.
+
+    `provider` selects the model backend. The system prompt and the tool surface
+    are identical whichever is chosen -- a cross-model comparison is worthless
+    if the two models were asked different questions.
+
+    Cells from different providers must never be merged into one grid. An arm
+    difference would then be indistinguishable from a model difference.
+    """
     surface = ToolSurface(
         persona, contracts_root, audit_path=audit_path,
         allow_joins=ARM_ALLOWS_JOINS[arm],
     )
-    client = client or anthropic.Anthropic()
+    chosen_model = model or (MODEL if provider == "anthropic" else DEFAULT_MODELS[provider])
+    backend = provider_for(
+        provider, model=chosen_model,
+        **({"client": client} if client is not None else {}),
+    )
 
     messages: list[dict[str, Any]] = [{"role": "user", "content": question}]
     executions: list[dict[str, Any]] = []
     finished = False
-    spend = Spend(model=MODEL)
+    spend = Spend(model=chosen_model)
+    text = ""
 
     for _ in range(MAX_TURNS):
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=2048,
-            system=system_prompt(arm),
-            tools=_tool_schemas(arm),
-            messages=messages,
-        )
-        spend.observe(response)
-        messages.append({"role": "assistant", "content": response.content})
+        turn = backend.complete(system_prompt(arm), _tool_schemas(arm), messages)
+        spend.add(**turn.usage)
+        text = turn.text
 
-        tool_uses = [b for b in response.content if b.type == "tool_use"]
-        if not tool_uses:
+        # Recorded in the provider's own shape so one canonical transcript
+        # exists per cell regardless of backend.
+        assistant: list[dict[str, Any]] = []
+        if turn.text:
+            assistant.append({"type": "text", "text": turn.text})
+        assistant += [
+            {"type": "tool_use", "id": c.id, "name": c.name, "input": c.arguments}
+            for c in turn.tool_calls
+        ]
+        messages.append({"role": "assistant", "content": assistant})
+
+        if turn.is_final:
             finished = True
             break
 
         results = []
-        for use in tool_uses:
+        for use in turn.tool_calls:
             try:
-                payload = getattr(surface, use.name)(**use.input)
+                payload = getattr(surface, use.name)(**use.arguments)
                 if use.name in ("query_metric", "run_sql"):
                     executions.append(payload)
                 results.append({
@@ -140,8 +164,6 @@ def answer(
                     "content": f"{type(exc).__name__}: {exc}",
                 })
         messages.append({"role": "user", "content": results})
-
-    text = "\n".join(b.text for b in response.content if b.type == "text")
 
     # An agent stopped mid-investigation has not answered, and its last query is
     # a probe rather than a result. Reporting that probe as the answer would put

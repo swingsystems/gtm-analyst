@@ -13,7 +13,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from gtm_analyst.agent.card import AnswerCard
-from gtm_analyst.agent.runner import ARM_TOOLS, answer
+from gtm_analyst.agent.runner import ARM_TOOLS, DEFAULT_MODELS, answer
 from gtm_analyst.harness.score import Outcome, RefusalKind, Score, score_answer
 from gtm_analyst.spec.loader import Spec, load_spec
 
@@ -33,6 +33,8 @@ def run_experiment(
     audit_path: Path | None = None,
     cards_path: Path | None = None,
     resume_from: Path | None = None,
+    provider: str = "anthropic",
+    model: str | None = None,
 ) -> list[Score]:
     """Every question x persona x arm. A missing cell is an error, not an omission.
 
@@ -57,9 +59,17 @@ def run_experiment(
     # old score would silently mix scorer versions in one report. Three scorer
     # bugs have been found in this project, so a report spanning two scorers is
     # a report nobody can interpret.
+    # Resume only ever replays cells produced by the SAME model. Reusing a
+    # recorded Claude cell inside an OpenAI grid would make an arm difference
+    # indistinguishable from a model difference, which is the one error this
+    # experiment cannot survive.
     done: dict[tuple[str, str, str], dict] = {}
     if resume_from and resume_from.exists():
+        expected_model = model or DEFAULT_MODELS.get(provider)
         for record in json.loads(resume_from.read_text()):
+            recorded = (record.get("spend") or {}).get("model")
+            if recorded is not None and recorded != expected_model:
+                continue
             key = (record["_question_id"], record["persona"], record["arm"])
             done[key] = record
 
@@ -76,7 +86,8 @@ def run_experiment(
                     )
                 else:
                     card = answer(question.text, persona, arm, contracts_root,
-                                  audit_path=audit_path)
+                                  audit_path=audit_path,
+                                  provider=provider, model=model)
                 cards.append({**card.model_dump(), "_question_id": question.id})
                 scores.append(score_answer(
                     card, truth, PERMITTED_REGIONS[persona_name], question.id, ALL_REGIONS
