@@ -112,6 +112,23 @@ report "strict-contract: 100%", which is true and would badly mislead — which 
 why the [pre-registered reporting schema](docs/adr/0003-three-arms-and-pre-registered-reporting.md)
 forbids one.
 
+### Not tied to one model
+
+The agent runs against Anthropic or OpenAI behind one interface, with a
+**byte-identical system prompt and tool surface** for both — a cross-model
+result is worthless if the two models were asked different questions.
+
+```bash
+gtm experiment --provider openai            # a separate, complete grid
+```
+
+**Grids are never merged.** If some cells come from one model and some from
+another, an arm difference becomes indistinguishable from a model difference —
+the same failure as comparing an arm against itself. Resume replays only cells
+whose recorded model matches the run, and an unknown provider raises rather than
+defaulting, so a run cannot misreport which model produced it.
+[ADR 0007](docs/adr/0007-two-providers-never-one-grid.md).
+
 Full results and their limits: [`results/`](results/).
 
 The run resumes rather than restarting — `gtm experiment --resume-from
