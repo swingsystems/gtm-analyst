@@ -30,7 +30,14 @@ MODEL = "claude-sonnet-5"
 
 # The default model per provider. Named explicitly so a run records which model
 # produced it rather than inheriting whatever the SDK considers current.
-DEFAULT_MODELS = {"anthropic": MODEL, "openai": "gpt-4.1"}
+DEFAULT_MODELS = {
+    "anthropic": MODEL,
+    "openai": "gpt-4.1",
+    # Tool-calling capable and free to evaluate. Named explicitly rather than
+    # inherited, so a card records which model produced it.
+    "nvidia": "meta/llama-3.3-70b-instruct",
+    "openrouter": "nvidia/nemotron-3.5-lightning:free",
+}
 
 # Every arm gets the SAME budget. A turn limit that binds on one arm and not
 # another measures patience rather than grounding. Raised from 8 after watching

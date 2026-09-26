@@ -224,6 +224,77 @@ class AnthropicProvider:
         })
 
 
+# NVIDIA NIM and OpenRouter both serve the OpenAI chat-completions API, so
+# they are the same client pointed at a different host rather than new adapters.
+# There is deliberately NO automatic switching between them: a grid is
+# single-model, and swapping provider partway would make an arm difference
+# indistinguishable from a model difference. Choosing another backend is a
+# decision to run a separate complete grid.
+ENDPOINTS: dict[str, dict[str, str]] = {
+    "openai": {
+        "base_url": "https://api.openai.com/v1",
+        "env": "OPENAI_API_KEY",
+        "keychain": "openai-api-key",
+    },
+    "nvidia": {
+        "base_url": "https://integrate.api.nvidia.com/v1",
+        "env": "NVIDIA_API_KEY",
+        "keychain": "nvidia-api-key",
+    },
+    "openrouter": {
+        "base_url": "https://openrouter.ai/api/v1",
+        "env": "OPENROUTER_API_KEY",
+        "keychain": "openrouter-api-key",
+    },
+}
+
+
+def keychain_secret(service: str) -> str | None:
+    """Read a secret from the macOS keychain.
+
+    Returned for use, never logged or written to disk. Any failure -- wrong
+    platform, missing entry, locked keychain -- is None rather than an
+    exception, so the caller can report one clear message naming both places a
+    key may live.
+    """
+    import os
+    import subprocess
+    import sys
+
+    if sys.platform != "darwin":
+        return None
+    try:
+        out = subprocess.run(
+            ["security", "find-generic-password", "-a", os.environ.get("USER", ""),
+             "-s", service, "-w"],
+            capture_output=True, text=True, timeout=10, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip() or None
+
+
+def resolve_key(provider: str, env=None, keychain=keychain_secret) -> str:
+    """Find a credential: environment first, then the macOS keychain.
+
+    Environment wins so a run can be pointed at a different account without
+    touching the login keychain. A bare "unauthorized" partway through a grid is
+    the least useful error there is, so the failure names the provider and both
+    places the key could live.
+    """
+    import os
+
+    env = os.environ if env is None else env
+    config = ENDPOINTS[provider]
+    found = env.get(config["env"]) or keychain(config["keychain"])
+    if not found:
+        raise RuntimeError(
+            f"no credential for {provider}: set ${config['env']}, or add it to "
+            f"the macOS keychain as service {config['keychain']!r}"
+        )
+    return found
+
+
 class OpenAIProvider:
     """OpenAI chat completions with tool calling.
 
@@ -232,11 +303,20 @@ class OpenAIProvider:
     comparison a comparison of prompts.
     """
 
-    def __init__(self, model: str, client: Any | None = None, api_key: str | None = None):
+    def __init__(self, model: str, client: Any | None = None,
+                 api_key: str | None = None, provider: str = "openai"):
         from openai import OpenAI
 
         self.model = model
-        self._client = client or OpenAI(api_key=api_key)
+        self.provider = provider
+        if client is not None:
+            self._client = client
+        else:
+            config = ENDPOINTS[provider]
+            self._client = OpenAI(
+                api_key=api_key or resolve_key(provider),
+                base_url=config["base_url"],
+            )
 
     def complete(self, system: str, tools: list[dict[str, Any]],
                  history: list[dict[str, Any]]) -> Turn:
@@ -274,7 +354,19 @@ class OpenAIProvider:
         })
 
 
-PROVIDERS = {"anthropic": AnthropicProvider, "openai": OpenAIProvider}
+def _openai_compatible(name: str):
+    """Bind one OpenAI-compatible backend to its endpoint."""
+    def build(model: str, **kwargs: Any) -> OpenAIProvider:
+        return OpenAIProvider(model=model, provider=name, **kwargs)
+    return build
+
+
+PROVIDERS = {
+    "anthropic": AnthropicProvider,
+    "openai": _openai_compatible("openai"),
+    "nvidia": _openai_compatible("nvidia"),
+    "openrouter": _openai_compatible("openrouter"),
+}
 
 
 def provider_for(name: str, model: str, **kwargs: Any) -> Provider:

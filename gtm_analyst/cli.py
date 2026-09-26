@@ -184,8 +184,10 @@ def record_runs(root: Path, out: Path, questions: str, contracts: Path) -> None:
               help="replay recorded cards for cells already run; call the model "
                    "only for the rest. Only cells from the SAME model are reused")
 @click.option("--provider", default="anthropic",
-              type=click.Choice(["anthropic", "openai"]),
-              help="model backend. Grids from different providers must never be merged")
+              type=click.Choice(["anthropic", "openai", "nvidia", "openrouter"]),
+              help="model backend. Grids from different providers must never be "
+                   "merged; choosing another one means running a SEPARATE "
+                   "complete grid, not resuming this one")
 @click.option("--model", default=None, help="override the provider's default model")
 def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str,
                resume_from: Path | None, provider: str, model: str | None) -> None:

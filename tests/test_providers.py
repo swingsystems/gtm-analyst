@@ -217,3 +217,61 @@ def test_backoff_grows_and_is_capped() -> None:
     waits = [backoff_seconds(i) for i in range(8)]
     assert waits == sorted(waits)
     assert max(waits) <= MAX_BACKOFF_SECONDS
+
+
+# ------------------------------------------------- openai-compatible backends
+
+def test_nvidia_and_openrouter_are_registered() -> None:
+    """Both speak the OpenAI chat-completions API, so they are the same client
+    pointed at a different host rather than new adapters."""
+    assert {"nvidia", "openrouter"} <= set(PROVIDERS)
+
+
+def test_each_backend_has_its_own_endpoint() -> None:
+    from gtm_analyst.agent.providers import ENDPOINTS
+
+    hosts = {name: cfg["base_url"] for name, cfg in ENDPOINTS.items()}
+    assert "integrate.api.nvidia.com" in hosts["nvidia"]
+    assert "openrouter.ai" in hosts["openrouter"]
+    assert len(set(hosts.values())) == len(hosts), "two providers share a host"
+
+
+def test_a_missing_credential_names_the_provider_and_where_to_put_it() -> None:
+    """A bare 'unauthorized' halfway through a grid is the least useful error
+    there is."""
+    from gtm_analyst.agent.providers import resolve_key
+
+    with pytest.raises(RuntimeError, match="NVIDIA_API_KEY.*nvidia-api-key"):
+        resolve_key("nvidia", env={}, keychain=lambda _: None)
+
+
+def test_an_environment_variable_wins_over_the_keychain() -> None:
+    """So a run can be pointed at a different account without touching the
+    login keychain."""
+    from gtm_analyst.agent.providers import resolve_key
+
+    got = resolve_key("nvidia", env={"NVIDIA_API_KEY": "from-env"},
+                      keychain=lambda _: "from-keychain")
+    assert got == "from-env"
+
+
+def test_the_keychain_is_used_when_no_variable_is_set() -> None:
+    from gtm_analyst.agent.providers import resolve_key
+
+    assert resolve_key("openrouter", env={}, keychain=lambda s: "k" if s == "openrouter-api-key" else None) == "k"
+
+
+def test_switching_provider_mid_grid_is_not_offered() -> None:
+    """There is deliberately no failover. A grid is single-model: swapping
+    provider partway would make an arm difference indistinguishable from a
+    model difference, which is the whole point of ADR 0007. Falling back is a
+    decision to run a SEPARATE complete grid, not something the runner does on
+    its own while nobody is looking.
+    """
+    import inspect
+
+    from gtm_analyst.agent import providers
+
+    source = inspect.getsource(providers)
+    for word in ("fallback", "failover", "next_provider"):
+        assert word not in source.lower().replace("no fallback", ""), word

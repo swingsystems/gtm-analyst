@@ -72,6 +72,17 @@ PRICES: dict[str, Price] = {
 _MILLION = Decimal(1_000_000)
 
 
+# OpenRouter's ":free" suffix is a documented contract: those variants bill
+# nothing. Priced as genuine zero rather than left unpriced, so a free run
+# reports $0.00 and stays distinguishable from a run nobody could price.
+#
+# NVIDIA's build tier is deliberately NOT given a blanket zero. It is free for
+# evaluation but that is not a per-model guarantee, and assuming zero is how a
+# bill arrives as a surprise. An NVIDIA model must be added to PRICES
+# explicitly, which forces someone to look up what it actually costs.
+_FREE_SUFFIX = ":free"
+
+
 def price_of(
     model: str,
     input_tokens: int,
@@ -85,6 +96,8 @@ def price_of(
     a run as free, and being unable to price something is information rather
     than a default.
     """
+    if model.endswith(_FREE_SUFFIX):
+        return Decimal("0.00")
     try:
         price = PRICES[model]
     except KeyError:

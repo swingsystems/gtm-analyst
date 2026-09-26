@@ -121,3 +121,20 @@ def test_a_run_that_gave_up_still_reports_its_cost() -> None:
     source = inspect.getsource(runner.answer)
     # Three construction sites: exhausted, no-query, and answered.
     assert source.count("spend=spend.as_dict()") == 3
+
+
+def test_a_free_tier_model_costs_exactly_zero() -> None:
+    """OpenRouter's ':free' suffix is a documented contract. Pricing it as a
+    genuine zero keeps a free run distinguishable from one nobody could price."""
+    from gtm_analyst.agent.spend import price_of
+
+    assert price_of("nvidia/nemotron-3.5-lightning:free", 1_000_000, 1_000_000) == 0
+
+
+def test_an_nvidia_model_is_not_assumed_free() -> None:
+    """The build tier is free to evaluate, but that is not a per-model
+    guarantee, and assuming zero is how a bill arrives as a surprise."""
+    from gtm_analyst.agent.spend import price_of
+
+    with pytest.raises(KeyError, match="no published price"):
+        price_of("meta/llama-3.3-70b-instruct", 100, 100)
