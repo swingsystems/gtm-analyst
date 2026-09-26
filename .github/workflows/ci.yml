@@ -63,6 +63,13 @@ jobs:
         run: uv sync --all-extras
 
       - if: steps.creds.outputs.configured == 'true'
+        name: Install dbt packages
+        # Without this every dbt call fails with a Compilation Error before it
+        # reaches Snowflake -- which is how a chaos suite reports catching
+        # defects it never planted.
+        run: cd warehouse && uv run dbt deps
+
+      - if: steps.creds.outputs.configured == 'true'
         name: Install the dbt profile
         # From the committed example, so the profile CI uses and the profile the
         # docs tell adopters to copy cannot drift apart.

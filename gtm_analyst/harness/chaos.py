@@ -130,8 +130,13 @@ def dbt_tests_pass() -> bool:
     if result.returncode == 0:
         return True
     blob = f"{result.stdout}\n{result.stderr}"
+    # Every way dbt can decline to run. A Compilation Error means the project
+    # never reached the warehouse, and missing packages is the commonest cause
+    # -- CI hit exactly that and it read as a failing data test.
     for marker in ("Could not find profile", "Credentials in profile",
-                   "runtime error", "Runtime Error", "profiles.yml"):
+                   "runtime error", "Runtime Error", "profiles.yml",
+                   "Compilation Error", "dbt deps", "not found in dbt_packages",
+                   "Encountered an error"):
         if marker in blob:
             raise DbtUnavailable(
                 f"dbt could not run, so nothing was tested: {blob.strip()[-600:]}"
