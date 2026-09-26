@@ -133,3 +133,87 @@ def test_an_error_result_is_still_delivered_to_the_model() -> None:
 def test_a_turn_with_no_tool_calls_is_final() -> None:
     assert Turn(text="done", tool_calls=[]).is_final
     assert not Turn(text="", tool_calls=[ToolCall("1", "list_metrics", {})]).is_final
+
+
+# ---------------------------------------------------------------- rate limits
+
+def test_a_rate_limit_is_retried_with_backoff() -> None:
+    """A 429 on tokens-per-minute is a pacing problem, not a failure. The first
+    live run died at cell 11 of 108 on one, losing the rest of the grid to a
+    limit that clears in under a second."""
+    from gtm_analyst.agent.providers import call_with_retry
+
+    attempts = []
+
+    class _429(Exception):
+        status_code = 429
+
+    def flaky():
+        attempts.append(1)
+        if len(attempts) < 3:
+            raise _429("rate_limit_exceeded: tokens per min")
+        return "ok"
+
+    assert call_with_retry(flaky, sleep=lambda _: None) == "ok"
+    assert len(attempts) == 3
+
+
+def test_retries_are_bounded_rather_than_infinite() -> None:
+    """Retrying forever turns a stuck run into a silent money leak."""
+    from gtm_analyst.agent.providers import MAX_RETRIES, call_with_retry
+
+    attempts = []
+
+    class _429(Exception):
+        status_code = 429
+
+    def always():
+        attempts.append(1)
+        raise _429("rate_limit_exceeded")
+
+    with pytest.raises(Exception, match="rate_limit"):
+        call_with_retry(always, sleep=lambda _: None)
+    assert len(attempts) == MAX_RETRIES + 1
+
+
+def test_a_permanent_quota_error_is_not_retried() -> None:
+    """Retrying an exhausted balance burns wall-clock for a call that cannot
+    succeed, and buries the one message that explains the stop."""
+    from gtm_analyst.agent.providers import call_with_retry
+
+    class _Quota(Exception):
+        status_code = 429
+
+    def broke():
+        raise _Quota("insufficient_quota: billing hard limit reached")
+
+    with pytest.raises(Exception, match="insufficient_quota"):
+        call_with_retry(broke, sleep=lambda _: None, )
+
+
+def test_a_non_rate_limit_error_is_raised_immediately() -> None:
+    """A bad request is a bug in our payload. Retrying it hides the bug and
+    charges for the privilege."""
+    from gtm_analyst.agent.providers import call_with_retry
+
+    class _Bad(Exception):
+        status_code = 400
+
+    calls = []
+
+    def bad():
+        calls.append(1)
+        raise _Bad("invalid tool schema")
+
+    with pytest.raises(Exception, match="invalid tool schema"):
+        call_with_retry(bad, sleep=lambda _: None)
+    assert len(calls) == 1, "a 400 must not be retried"
+
+
+def test_backoff_grows_and_is_capped() -> None:
+    """Uncapped exponential backoff on a long grid sleeps for hours."""
+    from gtm_analyst.agent.providers import MAX_BACKOFF_SECONDS, backoff_seconds
+
+    waits = [backoff_seconds(i) for i in range(8)]
+    assert waits == sorted(waits)
+    assert max(waits) <= MAX_BACKOFF_SECONDS

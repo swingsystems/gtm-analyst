@@ -14,8 +14,56 @@ where a silent bug would confound every number downstream -- so they are tested
 directly rather than only through a live run.
 """
 import json
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
+
+# A rate limit is a pacing problem, not a failure. The first live run died at
+# cell 11 of 108 on a tokens-per-minute 429 -- losing the rest of a grid to a
+# limit that clears in well under a second.
+MAX_RETRIES = 6
+MAX_BACKOFF_SECONDS = 30.0
+
+# Retryable: the call can succeed later. NOT retryable: the account is out of
+# money or the request is malformed. Retrying those burns wall-clock on a call
+# that cannot succeed and buries the message explaining why it stopped.
+_PERMANENT = ("insufficient_quota", "billing", "hard limit", "usage limit")
+
+
+def backoff_seconds(attempt: int) -> float:
+    """Exponential, capped. Uncapped growth on a long grid sleeps for hours."""
+    return min(0.5 * (2 ** attempt), MAX_BACKOFF_SECONDS)
+
+
+def _is_rate_limit(exc: BaseException) -> bool:
+    if getattr(exc, "status_code", None) != 429:
+        return False
+    message = str(exc).lower()
+    return not any(marker in message for marker in _PERMANENT)
+
+
+def call_with_retry(
+    func: Callable[[], Any],
+    sleep: Callable[[float], None] = time.sleep,
+) -> Any:
+    """Call `func`, retrying only a transient rate limit.
+
+    Bounded rather than infinite: retrying forever turns a stuck run into a
+    silent money leak. A 400 is a bug in our payload and is raised immediately,
+    because retrying it hides the bug and charges for the privilege.
+    """
+    last: BaseException | None = None
+    for attempt in range(MAX_RETRIES + 1):
+        try:
+            return func()
+        except Exception as exc:  # re-raised below unless it is a transient 429
+            if not _is_rate_limit(exc):
+                raise
+            last = exc
+            if attempt < MAX_RETRIES:
+                sleep(backoff_seconds(attempt))
+    raise last  # type: ignore[misc]
 
 
 @dataclass(frozen=True)
@@ -158,10 +206,10 @@ class AnthropicProvider:
 
     def complete(self, system: str, tools: list[dict[str, Any]],
                  history: list[dict[str, Any]]) -> Turn:
-        response = self._client.messages.create(
+        response = call_with_retry(lambda: self._client.messages.create(
             model=self.model, max_tokens=2048, system=system,
             tools=anthropic_tools(tools), messages=history,
-        )
+        ))
         calls = [
             ToolCall(id=b.id, name=b.name, arguments=dict(b.input))
             for b in response.content if b.type == "tool_use"
@@ -193,10 +241,10 @@ class OpenAIProvider:
     def complete(self, system: str, tools: list[dict[str, Any]],
                  history: list[dict[str, Any]]) -> Turn:
         messages = [{"role": "system", "content": system}] + openai_messages(history)
-        response = self._client.chat.completions.create(
+        response = call_with_retry(lambda: self._client.chat.completions.create(
             model=self.model, max_tokens=2048,
             tools=openai_tools(tools), messages=messages,
-        )
+        ))
         choice = response.choices[0].message
         calls = []
         for call in (choice.tool_calls or []):
