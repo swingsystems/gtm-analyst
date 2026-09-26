@@ -135,6 +135,35 @@ def test_the_rep_cannot_read_the_identity_map() -> None:
     assert _blocked("REP_INDIVIDUAL", "SELECT * FROM GAA.IDENTITY.MAP_USER_TO_REP")
 
 
+def _has_accountadmin() -> bool:
+    """Whether this session can obtain ACCOUNTADMIN.
+
+    CI deliberately cannot. Its user holds GAA_LOADER and nothing else, because
+    granting CI an admin role to make a test pass would weaken the boundary the
+    test exists to prove -- a trade that is always available and never worth
+    taking.
+    """
+    from gtm_analyst.connection import session_for_persona
+    from gtm_analyst.spec.models import Persona
+
+    try:
+        with session_for_persona(Persona(
+            name="ADMIN", snowflake_role="ACCOUNTADMIN", snowflake_schema="MARTS",
+            description="capability probe", service_user=False,
+        )) as conn:
+            conn.cursor().execute("SELECT 1")
+        return True
+    except Exception:  # noqa: BLE001 - a capability probe: any failure means no
+        return False
+
+
+needs_admin = pytest.mark.skipif(
+    not _has_accountadmin(),
+    reason="needs ACCOUNTADMIN to mutate the identity map; CI holds GAA_LOADER only",
+)
+
+
+@needs_admin
 def test_an_unmapped_user_sees_nothing_rather_than_everything() -> None:
     """The failure DIRECTION is the point.
 

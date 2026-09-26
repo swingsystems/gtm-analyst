@@ -4,8 +4,15 @@
 # somebody granting a persona role to a human user on a Tuesday, which re-opens
 # role escalation -- the finding that opened this project's threat model.
 #
-# Requires a read-only Snowflake service account. Without the secrets this job
-# does not run, and it says so rather than passing green.
+# This needs an ADMIN credential, and deliberately not the CI one. Reading the
+# account's grant set requires SECURITYADMIN or ACCOUNTADMIN, while the CI user
+# holds GAA_LOADER and nothing else -- giving CI an admin role so this job could
+# run would hand a public runner the keys to the boundary it is meant to watch.
+#
+# So it uses separate secrets, SNOWFLAKE_ADMIN_USER and SNOWFLAKE_ADMIN_KEY.
+# Without them the job warns that drift is NOT being checked rather than passing
+# green. Running `make check-drift` from an operator machine is the other
+# perfectly good answer, and the honest default for most adopters.
 name: privilege-drift
 
 on:
@@ -23,8 +30,8 @@ jobs:
       - name: Check the credentials exist
         id: creds
         run: |
-          if [ -z "${{ secrets.SNOWFLAKE_ACCOUNT }}" ]; then
-            echo "::warning::No Snowflake credentials configured; drift is NOT being checked."
+          if [ -z "${{ secrets.SNOWFLAKE_ADMIN_USER }}" ]; then
+            echo "::warning::No SNOWFLAKE_ADMIN_USER configured; privilege drift is NOT being checked in CI."
             echo "configured=false" >> "$GITHUB_OUTPUT"
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
@@ -37,15 +44,15 @@ jobs:
         name: Compare live grants against the committed baseline
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}
-          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_USER }}
+          SNOWFLAKE_USER: ${{ secrets.SNOWFLAKE_ADMIN_USER }}
           SNOWFLAKE_PRIVATE_KEY_PATH: /tmp/key.p8
-          SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+          SNOWFLAKE_PRIVATE_KEY_PASSPHRASE: ${{ secrets.SNOWFLAKE_ADMIN_KEY_PASSPHRASE }}
           SNOWFLAKE_WAREHOUSE: ${{ secrets.SNOWFLAKE_WAREHOUSE }}
           SNOWFLAKE_DATABASE: GAA
           SNOWFLAKE_SCHEMA: MARTS
           SNOWFLAKE_SERVICE_USER_PREFIX: GAA_SVC_
         run: |
-          printf '%s' "${{ secrets.SNOWFLAKE_PRIVATE_KEY }}" > /tmp/key.p8
+          printf '%s' "${{ secrets.SNOWFLAKE_ADMIN_KEY }}" > /tmp/key.p8
           chmod 600 /tmp/key.p8
           uv run python -m scripts.privilege_snapshot \
             --baseline governance-baseline/grants.json
