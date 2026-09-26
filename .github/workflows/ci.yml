@@ -57,6 +57,14 @@ jobs:
         run: uv sync --all-extras
 
       - if: steps.creds.outputs.configured == 'true'
+        name: Install the dbt profile
+        # From the committed example, so the profile CI uses and the profile the
+        # docs tell adopters to copy cannot drift apart.
+        run: |
+          mkdir -p ~/.dbt
+          cp warehouse/profiles.example.yml ~/.dbt/profiles.yml
+
+      - if: steps.creds.outputs.configured == 'true'
         name: Boundary, invariants, and planted defects
         env:
           SNOWFLAKE_ACCOUNT: ${{ secrets.SNOWFLAKE_ACCOUNT }}

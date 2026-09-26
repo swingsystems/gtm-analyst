@@ -91,5 +91,28 @@ def chaos(name: str, rebuild: bool = True):
             _dbt("run", "--select", variant.rebuild)
 
 
+class DbtUnavailable(RuntimeError):
+    """dbt could not run at all, which is not the same as a failing test."""
+
+
 def dbt_tests_pass() -> bool:
-    return _dbt("test").returncode == 0
+    """True when dbt's tests pass.
+
+    Raises when dbt could not run, rather than returning False. The distinction
+    is the whole point: a missing profile and a failing data test both produce a
+    non-zero exit, and collapsing them means a chaos variant "caught" a defect
+    that was never planted because nothing ever executed. CI found this by
+    having no profile -- every variant reported caught, and the restore
+    assertion is the only reason it surfaced.
+    """
+    result = _dbt("test")
+    if result.returncode == 0:
+        return True
+    blob = f"{result.stdout}\n{result.stderr}"
+    for marker in ("Could not find profile", "Credentials in profile",
+                   "runtime error", "Runtime Error", "profiles.yml"):
+        if marker in blob:
+            raise DbtUnavailable(
+                f"dbt could not run, so nothing was tested: {blob.strip()[-600:]}"
+            )
+    return False
