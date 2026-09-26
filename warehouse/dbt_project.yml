@@ -15,3 +15,29 @@ models:
       +materialized: view
     marts:
       +materialized: table
+
+seeds:
+  gtm_analyst:
+    salesforce:
+      # Typed explicitly rather than inferred. Salesforce exports booleans as
+      # the strings "true"/"false" and Ids as fixed-width text that starts with
+      # digits -- both of which type inference gets wrong in ways that surface
+      # as a silently empty result rather than an error.
+      +column_types:
+        Id: varchar(18)
+        AccountId: varchar(18)
+        OwnerId: varchar(18)
+        UserId: varchar(18)
+        Territory2Id: varchar(18)
+        External_Id__c: varchar(64)
+        IsWon: boolean
+        IsClosed: boolean
+        IsActive: boolean
+        Is_Intercompany__c: boolean
+        Amount: number(38,2)
+        Term_Months__c: number(38,0)
+        CloseDate: date
+        CreatedDate: date
+        EffectiveStartDate: date
+        EffectiveEndDate: date
+        Segment__c: varchar(64)

@@ -172,6 +172,41 @@
     ],
     [
       "OWNERSHIP",
+      "TABLE",
+      "GAA.MARTS.SFDC_ACCOUNT",
+      "ROLE",
+      "GAA_LOADER"
+    ],
+    [
+      "OWNERSHIP",
+      "TABLE",
+      "GAA.MARTS.SFDC_OPPORTUNITY",
+      "ROLE",
+      "GAA_LOADER"
+    ],
+    [
+      "OWNERSHIP",
+      "TABLE",
+      "GAA.MARTS.SFDC_TERRITORY2",
+      "ROLE",
+      "GAA_LOADER"
+    ],
+    [
+      "OWNERSHIP",
+      "TABLE",
+      "GAA.MARTS.SFDC_USER",
+      "ROLE",
+      "GAA_LOADER"
+    ],
+    [
+      "OWNERSHIP",
+      "TABLE",
+      "GAA.MARTS.SFDC_USER_TERRITORY2_ASSOCIATION",
+      "ROLE",
+      "GAA_LOADER"
+    ],
+    [
+      "OWNERSHIP",
       "VIEW",
       "GAA.MARTS.STG_ACCOUNTS",
       "ROLE",

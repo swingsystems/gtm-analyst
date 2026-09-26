@@ -196,6 +196,12 @@ agent ──► tool surface ──► persona service user ──► GAA.<PERSO
    this project lost ~70 stray privileges to exactly that. `make teardown`
    removes everything it created.
 3. **Point it at your models** — [bring-your-own-models guide](docs/bring-your-own-models.md).
+   Already on Salesforce? The
+   [Salesforce-shaped source](docs/salesforce-shaped-source.md) builds the same
+   warehouse from Account and Opportunity and reaches the **same
+   10,826,071.18** — the governance boundary and the frozen evaluation do not
+   depend on the source system. No Salesforce connection required; the data is
+   synthetic, reshaped.
 4. **Write your questions first.** Commit the questions and reference SQL
    *before* the models they evaluate, and let the commit order prove it. A test
    asserts that ordering in this repo.
