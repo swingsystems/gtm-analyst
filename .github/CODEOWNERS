@@ -1,0 +1,13 @@
+# The frozen evaluation spec is the evidence that the questions predate the
+# models they evaluate -- tests/test_spec_predates_models.py asserts it from git
+# history. A change here cannot be repaired by rewriting history, because
+# rewriting is the thing that history exists to disprove.
+/evals/spec/            @swingsystems/maintainers
+
+# The security boundary. A mistake in either becomes a breach rather than a bug.
+/warehouse/governance/  @swingsystems/maintainers
+/gtm_analyst/mcp/       @swingsystems/maintainers
+
+# Two of three scorer bugs found here flattered the thesis, which makes a
+# change that improves the numbers the one most likely to be wrong.
+/gtm_analyst/harness/score.py  @swingsystems/maintainers
