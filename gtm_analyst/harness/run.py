@@ -12,6 +12,7 @@ from collections import Counter, defaultdict
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from gtm_analyst.agent.card import AnswerCard
 from gtm_analyst.agent.runner import ARM_TOOLS, DEFAULT_MODELS, answer
@@ -78,12 +79,29 @@ def run_experiment(
     # Checked before every question, not once at the start. A concurrent
     # rebuild lands mid-run, and a single check at the top proves only that the
     # warehouse was healthy before anything mattered.
-    check_warehouse = canary_checker(spec_root, spec)
+    #
+    # Built lazily and skipped entirely for a question whose every cell is
+    # replayed from disk. A fully resumed run reads nothing from the warehouse,
+    # so demanding a live connection to verify it would make rescoring
+    # recorded cards impossible without credentials -- which is precisely what
+    # those cards were persisted to avoid.
+    _checker: list[Any] = []
+
+    def check_warehouse() -> None:
+        if not _checker:
+            _checker.append(canary_checker(spec_root, spec))
+        _checker[0]()
 
     scores: list[Score] = []
     cards: list[dict] = []
     for question in questions:
-        check_warehouse()
+        needs_live = any(
+            (question.id, persona_name, arm) not in done
+            for persona_name in spec.personas
+            for arm in arms
+        )
+        if needs_live:
+            check_warehouse()
         for persona_name, persona in spec.personas.items():
             truth = next(e.rows for e in question.expected if e.persona == persona_name)
             for arm in arms:
