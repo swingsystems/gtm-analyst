@@ -240,6 +240,43 @@ def rescore(root: Path, cards: Path, out: Path) -> None:
     click.echo(f"rescored {len(scores)} cells from {cards} -> {out / 'summary.md'}")
 
 
+@cli.command("compare")
+@click.option("--grid", "grids", multiple=True, required=True,
+              metavar="NAME=PATH",
+              help="a named cards.json; pass at least twice")
+@click.option("--out", type=click.Path(path_type=Path), default=None)
+def compare_cmd(grids: tuple[str, ...], out: Path | None) -> None:
+    """Report two or more grids side by side, never merged.
+
+    Cells from different models are not summed: an arm difference would
+    otherwise be indistinguishable from a model difference. The command refuses
+    a grid that itself contains more than one model.
+    """
+    from gtm_analyst.harness.compare import compare_grids
+    from gtm_analyst.viewer.build import load_cards
+
+    parsed: dict[str, list[dict]] = {}
+    for spec in grids:
+        if "=" not in spec:
+            raise click.ClickException(f"expected NAME=PATH, got {spec!r}")
+        name, _, path = spec.partition("=")
+        records = json.loads(Path(path).read_text())
+        parsed[name] = records
+        load_cards(Path(path))  # validates every card before reporting on it
+
+    try:
+        rendered = compare_grids(parsed)
+    except ValueError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if out:
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(rendered)
+        click.echo(f"wrote {out}")
+    else:
+        click.echo(rendered)
+
+
 @cli.command("serve")
 @click.option("--persona", required=True, help="the ONE identity this server is bound to")
 @click.option("--contracts", type=click.Path(path_type=Path),
