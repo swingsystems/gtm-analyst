@@ -108,6 +108,23 @@ confirming the rep sees zero rows
 deployment. A real one feeds it from the HR or CRM system of record, and a stale
 row there still grants the wrong book.
 
+### 4. Drift detection was blind to new principals — FIXED
+
+The privilege snapshot inspected a fixed list of principals: four roles, three
+service users, the operator. Creating a **new** user and granting it a persona
+role was therefore invisible — which is the escalation scenario, not an edge
+case. Found by walking through it: provisioning a CI user granted `GAA_LOADER`
+to a principal the snapshot had never heard of, and `check-drift` reported no
+drift.
+
+**Control.** The snapshot now also records who *holds* each role
+(`SHOW GRANTS OF ROLE`), so a grant to any principal, existing or new, appears
+as a difference.
+
+**Proven by** creating a user holding `GAA_FINANCE_GLOBAL` and confirming the
+check reported `+ holders:GAA_FINANCE_GLOBAL "USER:GTM_ROGUE"` and exited
+non-zero, then removing it and returning to 83 matching grants.
+
 **2. The free-SQL and contract arms share one tool surface.** Nothing prevents a
 contract-constrained agent from calling `run_sql`; the arms are separated by
 which tools their prompts describe and which contracts they are shown, not by

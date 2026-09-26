@@ -64,6 +64,20 @@ def _grants(cursor, statement: str) -> list[list[str]]:
     return sorted(out)
 
 
+def _holder(row: dict[str, str], operator: str) -> str:
+    """One "TYPE:NAME" holder of a role, with the operator normalised.
+
+    The baseline is committed to a public repository and must name no real
+    account, and a baseline naming one account's operator cannot be compared
+    against anybody else's.
+    """
+    kind = row.get("granted_to", "")
+    name = str(row.get("grantee_name", ""))
+    if name.upper() == operator.upper():
+        name = "<operator>"
+    return f"{kind}:{name}"
+
+
 def _diff(baseline: dict, live: dict) -> tuple[list[str], list[str]]:
     """What the account has that the baseline does not, and vice versa.
 
@@ -96,6 +110,17 @@ def main(out: Path | None, baseline: Path | None) -> None:
         cursor = conn.cursor()
         for role in ROLES:
             snapshot[f"role:{role}"] = _grants(cursor, f"SHOW GRANTS TO ROLE {role}")
+            # WHO HOLDS the role, not only what it can do.
+            #
+            # Without this the detector has a blind spot exactly where it
+            # matters: it inspected a fixed list of principals, so creating a
+            # NEW user and granting it a persona role was invisible. That is the
+            # escalation scenario, not a hypothetical -- provisioning a CI user
+            # walked straight through it and the check still said "no drift".
+            snapshot[f"holders:{role}"] = sorted(
+                _holder(row, settings.snowflake_user)
+                for row in _rows(cursor, f"SHOW GRANTS OF ROLE {role}")
+            )
         for persona in PERSONAS:
             user = f"{prefix}{persona}"
             # Role portfolio per user. This is the field that made escalation

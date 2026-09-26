@@ -23,17 +23,25 @@ page exists to prevent, and it is worth knowing it already happened once.
 The workflow writes the key to `/tmp/key.p8`, `chmod 600`s it, and removes it in
 an `if: always()` step so a failing test does not leave it on the runner.
 
-## Read this before you add the key
+## CI gets its own key, not yours
 
-**The key CI holds can act as every persona.** All three service users register
-the same public key, so whatever private key CI gets can open a session as
-finance, as EMEA, and as the rep. That is convenient and it is the weakest part
-of this setup: a compromised runner is every persona at once.
+Snowflake allows **two** public keys per user. The operator's key stays in slot
+one and is never uploaded anywhere; a dedicated CI key goes in slot two on the
+three persona service users. CI access can then be revoked on its own by
+clearing `RSA_PUBLIC_KEY_2`, without rotating the operator's key or touching
+anyone else's access.
 
-A real deployment gives each service user its own key pair and CI only the ones
-it needs. This repository does not, because a single-operator reference
-deployment sharing one key was a reasonable trade and pretending otherwise here
-would be worse than saying so.
+The CI user holds `GAA_LOADER` and nothing else. Granting it the persona roles
+would re-create the escalation path finding 1 in the threat model is about; it
+reaches personas only by connecting **as** the persona service users, which is
+the same path everything else uses.
+
+**What this does not fix.** One CI key still opens a session as all three
+personas, because the boundary tests have to connect as each of them to test
+anything. A compromised runner is every persona at once. The improvement is
+containment and revocability, not elimination — and the honest mitigation is
+pointing CI at an account you can afford to lose, which you should do anyway
+because the chaos suite deliberately breaks and rebuilds models.
 
 **Use a dedicated account.** CI runs the chaos suite, which deliberately breaks
 models and rebuilds them. Point it at a warehouse nobody is reading from.
@@ -45,25 +53,44 @@ boundary passes their CI and fails yours. Review accordingly.
 
 ## Provisioning a CI user
 
+```bash
+mkdir -p ~/.gtm-analyst-ci && chmod 700 ~/.gtm-analyst-ci
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 \
+  -out ~/.gtm-analyst-ci/ci_key.p8
+chmod 600 ~/.gtm-analyst-ci/ci_key.p8
+openssl rsa -in ~/.gtm-analyst-ci/ci_key.p8 -pubout -out ~/.gtm-analyst-ci/ci_key.pub
+```
+
+Keep it outside the repository. `.gitignore` is one `git add -f` away from
+failing, and the pre-commit hook is a backstop rather than a boundary.
+
 ```sql
 USE ROLE ACCOUNTADMIN;
 
-CREATE USER IF NOT EXISTS GAA_CI
+CREATE USER IF NOT EXISTS GTM_CI
     DEFAULT_ROLE = GAA_LOADER
     DEFAULT_WAREHOUSE = <your warehouse>
     TYPE = SERVICE
-    COMMENT = 'CI. Rebuilds models for the chaos suite.';
+    COMMENT = 'GitHub Actions. Rebuilds models for the chaos suite.';
 
-ALTER USER GAA_CI SET RSA_PUBLIC_KEY='<the CI public key body>';
+ALTER USER GTM_CI SET RSA_PUBLIC_KEY='<ci public key body>';
+GRANT ROLE GAA_LOADER TO USER GTM_CI;   -- the loader role, and nothing else
 
--- The loader role only. CI must NOT hold the persona roles: it connects as the
--- persona SERVICE users, and granting the roles to CI directly re-creates the
--- escalation path finding 1 in the threat model is about.
-GRANT ROLE GAA_LOADER TO USER GAA_CI;
+-- Slot two, so the operator's key is never uploaded and CI can be revoked alone.
+ALTER USER GAA_SVC_FINANCE_GLOBAL SET RSA_PUBLIC_KEY_2='<ci public key body>';
+ALTER USER GAA_SVC_SALES_DIR_EMEA SET RSA_PUBLIC_KEY_2='<ci public key body>';
+ALTER USER GAA_SVC_REP_INDIVIDUAL SET RSA_PUBLIC_KEY_2='<ci public key body>';
 ```
 
-Then run `make check-drift` — the new user shows as drift against the committed
+Then run `make check-drift`. The new user shows as drift against the committed
 baseline, which is the system working. Review it, then `make baseline`.
+
+To revoke CI later, without rotating anything else:
+
+```sql
+ALTER USER GAA_SVC_FINANCE_GLOBAL UNSET RSA_PUBLIC_KEY_2;   -- and the other two
+DROP USER GTM_CI;
+```
 
 ## Branch protection
 

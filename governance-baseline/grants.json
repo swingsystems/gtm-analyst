@@ -1,4 +1,21 @@
 {
+  "holders:GAA_FINANCE_GLOBAL": [
+    "ROLE:SYSADMIN",
+    "USER:GAA_SVC_FINANCE_GLOBAL"
+  ],
+  "holders:GAA_LOADER": [
+    "ROLE:SYSADMIN",
+    "USER:<operator>",
+    "USER:GTM_CI"
+  ],
+  "holders:GAA_REP_INDIVIDUAL": [
+    "ROLE:SYSADMIN",
+    "USER:GAA_SVC_REP_INDIVIDUAL"
+  ],
+  "holders:GAA_SALES_DIR_EMEA": [
+    "ROLE:SYSADMIN",
+    "USER:GAA_SVC_SALES_DIR_EMEA"
+  ],
   "role:GAA_FINANCE_GLOBAL": [
     [
       "SELECT",
