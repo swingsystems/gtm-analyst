@@ -84,6 +84,8 @@ def run_experiment(
                 if cards_path:
                     cards_path.parent.mkdir(parents=True, exist_ok=True)
                     cards_path.write_text(json.dumps(cards, indent=2, default=str) + "\n")
+    _LAST_CARDS.clear()
+    _LAST_CARDS.extend(cards)
     return scores
 
 
@@ -183,7 +185,71 @@ def summarise(scores: list[Score], arms: list[str]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def write_results(scores: list[Score], arms: list[str], out: Path) -> None:
+# The cards from the most recent run, so the CLI can report cost without
+# changing run_experiment's return type and every caller with it.
+_LAST_CARDS: list[dict] = []
+
+
+def spend_report(cards: list[dict]) -> str:
+    """What the run cost, per arm and in total.
+
+    A SEPARATE file rather than a section inside summary.md. That report's
+    schema was pre-registered in ADR 0003 before any number existed, and the
+    discipline is only worth something if it survives a change that looks
+    harmless -- including this one.
+
+    Cards recorded before spend was measured carry no usage. They are counted as
+    unmeasured rather than as zero, because a run that cost money and was not
+    instrumented is not a free run.
+    """
+    from collections import defaultdict
+    from decimal import Decimal
+
+    by_arm: dict[str, list[dict]] = defaultdict(list)
+    unmeasured = 0
+    for card in cards:
+        spend = card.get("spend")
+        if not spend:
+            unmeasured += 1
+            continue
+        by_arm[card["arm"]].append(spend)
+
+    lines = ["# What this run cost", ""]
+    if not by_arm:
+        lines += [f"No usage recorded on any of {len(cards)} cards.", ""]
+        return "\n".join(lines)
+
+    lines += ["| arm | cells | API calls | input tok | output tok | USD |",
+              "|---|---|---|---|---|---|"]
+    total = Decimal("0.00")
+    for arm in sorted(by_arm):
+        rows = by_arm[arm]
+        cost = sum((Decimal(r["cost_usd"]) for r in rows), Decimal("0.00"))
+        total += cost
+        lines.append(
+            f"| {arm} | {len(rows)} | {sum(r['api_calls'] for r in rows)} | "
+            f"{sum(r['input_tokens'] for r in rows):,} | "
+            f"{sum(r['output_tokens'] for r in rows):,} | {cost} |"
+        )
+    measured = sum(len(v) for v in by_arm.values())
+    per_answer = total / measured if measured else Decimal(0)
+    headline = (
+        f"**Total: ${total}** across {measured} measured cells "
+        f"(${per_answer:.4f} per answer)."
+    )
+    lines += ["", headline]
+    if unmeasured:
+        note = (
+            f"{unmeasured} card(s) carry no usage and are excluded. They predate "
+            "spend measurement -- counted as unmeasured rather than as zero, "
+            "because an uninstrumented run is not a free one."
+        )
+        lines += ["", note]
+    return "\n".join(lines) + "\n"
+
+
+def write_results(scores: list[Score], arms: list[str], out: Path,
+                  cards: list[dict] | None = None) -> None:
     out.mkdir(parents=True, exist_ok=True)
     (out / "raw.json").write_text(
         json.dumps([{**asdict(s), "outcome": s.outcome.value,
@@ -192,3 +258,5 @@ def write_results(scores: list[Score], arms: list[str], out: Path) -> None:
                    indent=2, sort_keys=True) + "\n"
     )
     (out / "summary.md").write_text(summarise(scores, arms))
+    if cards is not None:
+        (out / "spend.md").write_text(spend_report(cards))

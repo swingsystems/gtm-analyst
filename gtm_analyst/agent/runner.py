@@ -21,6 +21,7 @@ from snowflake.connector.errors import Error as SnowflakeError
 
 from gtm_analyst.agent.card import AnswerCard
 from gtm_analyst.agent.prompts import system_prompt
+from gtm_analyst.agent.spend import Spend
 from gtm_analyst.mcp.tools import ToolError, ToolSurface
 from gtm_analyst.spec.models import Persona
 
@@ -100,6 +101,7 @@ def answer(
     messages: list[dict[str, Any]] = [{"role": "user", "content": question}]
     executions: list[dict[str, Any]] = []
     finished = False
+    spend = Spend(model=MODEL)
 
     for _ in range(MAX_TURNS):
         response = client.messages.create(
@@ -109,6 +111,7 @@ def answer(
             tools=_tool_schemas(arm),
             messages=messages,
         )
+        spend.observe(response)
         messages.append({"role": "assistant", "content": response.content})
 
         tool_uses = [b for b in response.content if b.type == "tool_use"]
@@ -170,6 +173,10 @@ def answer(
                 f"{len(executions)} quer{'y' if len(executions) == 1 else 'ies'} ran, "
                 "none reported as a final answer."
             ),
+            # Recorded on this path too. A run that burned its whole turn budget
+            # and produced nothing is the MOST expensive kind, and omitting its
+            # cost would make the cheapest-looking arm the one that gave up.
+            spend=spend.as_dict(),
         )
     if last is None:
         return AnswerCard(
@@ -180,6 +187,7 @@ def answer(
             },
             query_id=None, confidence=confidence, confidence_basis=basis,
             why_not=why_not or "the agent executed no query and gave no reason",
+            spend=spend.as_dict(),
         )
 
     return AnswerCard(
@@ -188,4 +196,5 @@ def answer(
         metrics_used=last["metrics_used"], lineage=last["lineage"],
         context=last["context"], query_id=last["query_id"],
         confidence=confidence, confidence_basis=basis, why_not=why_not,
+        spend=spend.as_dict(),
     )

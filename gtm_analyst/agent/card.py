@@ -38,6 +38,11 @@ class AnswerCard(BaseModel):
     # partial answer that does not say what was withheld is the dangerous case:
     # it looks complete and is quietly smaller.
     why_not: str | None = None
+    # What this answer cost to produce. OPTIONAL on purpose: the 25 cards
+    # recorded before spend was measured must still load, and the model sets
+    # extra="forbid", so a required field would make the published evidence
+    # unreadable. None means "not measured", which is different from zero.
+    spend: dict[str, Any] | None = None
 
     @property
     def is_refusal(self) -> bool:

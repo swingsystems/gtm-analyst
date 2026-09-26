@@ -202,8 +202,25 @@ SUSPEND rather than SUSPEND_IMMEDIATE deliberately: killing statements mid-fligh
 turns a budget event into a data-quality incident, because a half-finished dbt
 build looks exactly like a broken model.
 
-**Residual.** Nothing caps *model* spend, which is what actually halted the
-experiment here. That limit lives with the model provider, not in this code.
+**Residual, now measured.** Nothing in this code caps *model* spend -- that
+limit lives with the provider, and it is what actually halted the experiment
+here. But it is no longer unmeasured: every answer card records its API calls,
+input and output tokens, cache reads, and cost in USD, and each run writes a
+`spend.md` alongside its results.
+
+The gap this closed was specific. The pilots recorded no usage at all, so the
+only answer to "what did a run cost" was an estimate from tool-call counts --
+in a project whose entire claim is that numbers carry their provenance.
+
+Cost is reported in a separate file rather than inside `summary.md`, whose
+schema was pre-registered in ADR 0003 before any number existed. A cost section
+in there would have been a harmless-looking edit to the one document whose value
+depends on not having been edited after seeing results. A test asserts the
+separation.
+
+Turn exhaustion records its cost too. A run that burns its whole budget and
+produces no answer is the most expensive outcome there is, and omitting it would
+make the arm that gives up earliest look cheapest.
 
 ---
 

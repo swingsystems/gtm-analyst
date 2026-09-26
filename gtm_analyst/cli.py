@@ -196,8 +196,11 @@ def experiment(root: Path, contracts: Path, out: Path, questions: str, arms: str
                             audit_path=out / "audit.jsonl",
                             cards_path=out / "cards.json",
                             resume_from=resume_from)
-    write_results(scores, arm_list, out)
+    from gtm_analyst.harness.run import _LAST_CARDS
+
+    write_results(scores, arm_list, out, cards=list(_LAST_CARDS))
     click.echo(f"{len(scores)} cells -> {out / 'summary.md'}")
+    click.echo(f"cost        -> {out / 'spend.md'}")
 
 
 @cli.command("rescore")
