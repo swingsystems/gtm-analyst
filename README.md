@@ -219,6 +219,10 @@ published rather than quietly absorbed. Assume more remain.
 
 ## How it works
 
+Short version below; the [architecture overview](docs/architecture-overview.md)
+covers the four decisions that carry it, the full inventory, and what the
+evaluation demonstrates — and admits.
+
 ```
 agent ──► tool surface ──► persona service user ──► GAA.<PERSONA>.V_*
           (5 tools)         (exactly one role)        (secure views)
