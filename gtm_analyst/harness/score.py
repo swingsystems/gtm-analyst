@@ -103,6 +103,22 @@ def total_is_ambiguous(rows: Rows) -> bool:
     return any(len(_row_measures(row)) != 1 for row in rows if row)
 
 
+# Every way a warehouse or client spells "this group has no value". The
+# reference SQL coalesces NULL to "(none)"; free SQL returns "". Both mean the
+# same absent segment, and scoring them apart penalises an arm for formatting.
+#
+# Deliberately a closed list. Treating any label mismatch as forgivable would
+# make an answer grouped by a different dimension score as correct, which is the
+# over-correction that produced scorer bug #3.
+_NULL_RENDERINGS = frozenset({"", "(none)", "none", "null", "n/a", "unknown", "(null)"})
+_NULL = "<null>"
+
+
+def _label(value: str) -> str:
+    text = str(value).strip()
+    return _NULL if text.lower() in _NULL_RENDERINGS else text
+
+
 def _canonical(row: dict[str, str]) -> tuple:
     """Reduce a row to its CONTENT, discarding column names.
 
@@ -113,13 +129,23 @@ def _canonical(row: dict[str, str]) -> tuple:
     aliases happen to match ground truth, which is the experiment measuring its
     own naming convention.
     """
-    labels = sorted(v for v in row.values() if not _is_numeric(v))
+    labels = sorted(_label(v) for v in row.values() if not _is_numeric(v))
     measures = sorted(Decimal(v) for v in row.values() if _is_numeric(v))
     return (tuple(labels), tuple(measures))
 
 
 def _as_set(rows: Rows) -> set[tuple]:
     return {_canonical(row) for row in rows}
+
+
+def rows_match(got: Rows, truth: Rows) -> bool:
+    """Whether two results say the same thing.
+
+    Insensitive to column NAMES, row ORDER, and how a null group is rendered.
+    Sensitive to labels, measures, and row count -- because those are the
+    answer.
+    """
+    return _as_set(got) == _as_set(truth)
 
 
 def _permitted_values(rows: Rows, column: str) -> set[str]:

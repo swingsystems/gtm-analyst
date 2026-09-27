@@ -94,3 +94,18 @@ class AnswerCard(BaseModel):
         if self.sql:
             lines += ["", "```sql", self.sql.strip(), "```"]
         return "\n".join(lines)
+
+
+def strip_sidecars(record: dict[str, Any]) -> dict[str, Any]:
+    """Drop the harness's own keys from a recorded card.
+
+    The harness writes sidecars alongside each card -- `_question_id` to join
+    back to the spec, `_recorded_at` to scope a contamination window. AnswerCard
+    sets extra="forbid" deliberately, since an unrecognised field is schema
+    drift worth failing on, so they are stripped by their underscore prefix
+    rather than by relaxing the model.
+
+    One helper because three call sites each had their own popping logic, and
+    adding a second sidecar silently broke two of them.
+    """
+    return {k: v for k, v in record.items() if not k.startswith("_")}

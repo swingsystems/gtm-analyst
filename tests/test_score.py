@@ -254,3 +254,53 @@ def test_a_single_measure_still_totals_normally():
     rows = [{"REGION": "EMEA", "BOOKINGS_AMOUNT": "100.50"}]
     assert not total_is_ambiguous(rows)
     assert _numeric_total(rows) == Decimal("100.50")
+
+
+# ------------------------------------------------ null rendering is not an error
+
+def test_an_empty_string_and_a_none_sentinel_are_the_same_absence() -> None:
+    """The reference SQL renders a NULL group as '(none)'; free SQL returns ''.
+    Both mean the row whose segment is absent, and the measure is identical.
+    Scoring that wrong penalises an arm for a formatting choice.
+
+    Found on a real 108-cell grid: q010 returned all four segment totals
+    correctly, including the NULL group's 1381545.78, and was marked wrong
+    because the label was '' instead of '(none)'. The scorer's own leak-detector
+    docstring already said a null rendered as '(none)' is a presentation choice;
+    the row comparison had not been told.
+    """
+    from gtm_analyst.harness.score import rows_match
+
+    truth = [{"SEGMENT": "(none)", "VALUE": "1381545.78"},
+             {"SEGMENT": "Enterprise", "VALUE": "1771584.48"}]
+    got = [{"CUSTOMER_SEGMENT": "Enterprise", "RECOGNISED_REVENUE": "1771584.48"},
+           {"CUSTOMER_SEGMENT": "", "RECOGNISED_REVENUE": "1381545.78"}]
+    assert rows_match(got, truth)
+
+
+def test_a_genuinely_different_label_is_still_wrong() -> None:
+    """The narrow fix must not become 'any label mismatch is forgiven'. An
+    answer grouped by a different dimension is a different answer, and scorer
+    bug #3 in this project was an over-correction in exactly this direction.
+    """
+    from gtm_analyst.harness.score import rows_match
+
+    truth = [{"SEGMENT": "Enterprise", "VALUE": "100.00"}]
+    assert not rows_match([{"REGION": "EMEA", "VALUE": "100.00"}], truth)
+
+
+def test_a_null_label_does_not_make_two_different_measures_equal() -> None:
+    from gtm_analyst.harness.score import rows_match
+
+    truth = [{"SEGMENT": "(none)", "VALUE": "100.00"}]
+    assert not rows_match([{"SEGMENT": ""}, ], truth)
+    assert not rows_match([{"SEGMENT": "", "VALUE": "999.00"}], truth)
+
+
+def test_every_recognised_null_rendering_is_covered() -> None:
+    """Warehouses and clients spell absence several ways."""
+    from gtm_analyst.harness.score import rows_match
+
+    truth = [{"SEG": "(none)", "V": "1.00"}]
+    for rendering in ("", "(none)", "none", "NULL", "null", "N/A", "unknown"):
+        assert rows_match([{"SEG": rendering, "V": "1.00"}], truth), rendering

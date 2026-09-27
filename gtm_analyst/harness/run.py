@@ -253,7 +253,8 @@ def spend_report(cards: list[dict]) -> str:
     unmeasured = 0
     for card in cards:
         spend = card.get("spend")
-        if not spend:
+        # An unpriced model counts as unmeasured, never as free.
+        if not spend or spend.get("cost_usd") is None:
             unmeasured += 1
             continue
         by_arm[card["arm"]].append(spend)

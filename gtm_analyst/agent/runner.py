@@ -35,7 +35,11 @@ DEFAULT_MODELS = {
     "openai": "gpt-4.1",
     # Tool-calling capable and free to evaluate. Named explicitly rather than
     # inherited, so a card records which model produced it.
-    "nvidia": "meta/llama-3.3-70b-instruct",
+    # Verified invokable WITH TOOLS on the build tier. NVIDIA's /models listing
+    # includes models that are not deployed: several return 410 Gone or 404
+    # "Function not found" when actually called, so a default has to be probed
+    # rather than read off the catalogue.
+    "nvidia": "mistralai/mistral-nemotron",
     "openrouter": "nvidia/nemotron-3.5-lightning:free",
 }
 

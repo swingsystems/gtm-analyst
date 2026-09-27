@@ -14,7 +14,7 @@ import json
 from html import escape
 from pathlib import Path
 
-from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.agent.card import AnswerCard, strip_sidecars
 
 # Ordered widest-to-narrowest so the page reads as progressive restriction
 # rather than three unrelated columns.
@@ -36,10 +36,7 @@ def load_cards(path: Path) -> list[AnswerCard]:
     stripped here by its underscore prefix rather than by relaxing the model.
     """
     records = json.loads(path.read_text())
-    return [
-        AnswerCard.model_validate({k: v for k, v in r.items() if not k.startswith("_")})
-        for r in records
-    ]
+    return [AnswerCard.model_validate(strip_sidecars(r)) for r in records]
 
 
 def cards_for_question(cards: list[AnswerCard], needle: str) -> list[AnswerCard]:

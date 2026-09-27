@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 import yaml
 
+from gtm_analyst.agent.card import strip_sidecars
 from gtm_analyst.spec.loader import SpecError, load_spec
 
 DEFAULT_SPEC_ROOT = Path("evals/spec")
@@ -231,7 +232,8 @@ def rescore(root: Path, cards: Path, out: Path) -> None:
 
     scores, arms = [], []
     for item in payload:
-        question_id = item.pop("_question_id")
+        question_id = item["_question_id"]
+        item = strip_sidecars(item)
         card = AnswerCard(**item)
         if card.arm not in arms:
             arms.append(card.arm)

@@ -166,6 +166,20 @@ class Spend:
                         self.cache_write_tokens, self.cache_read_tokens)
 
     def as_dict(self) -> dict[str, Any]:
+        """Usage always; cost when the model has a published rate.
+
+        An unpriced model records cost_usd = None rather than raising. Raising
+        here would make an otherwise working model unusable for the whole run
+        just because nobody had looked up its rate -- a pricing gap taking down
+        the experiment.
+
+        None is not zero. A run whose cost is unknown stays visibly unknown, so
+        it can never be summed into a total as though it were free.
+        """
+        try:
+            cost: str | None = str(self.cost_usd)
+        except KeyError:
+            cost = None
         return {
             "model": self.model,
             "api_calls": self.api_calls,
@@ -173,5 +187,5 @@ class Spend:
             "output_tokens": self.output_tokens,
             "cache_write_tokens": self.cache_write_tokens,
             "cache_read_tokens": self.cache_read_tokens,
-            "cost_usd": str(self.cost_usd),
+            "cost_usd": cost,
         }

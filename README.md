@@ -93,18 +93,22 @@ Three arms answer the same questions as the same personas:
 | `strict-contract` | restricted to declared metrics, no joins |
 | `safe-join-contract` | declared metrics, joins carrying compiler-mandatory predicates |
 
-**Partial pilot — 25 of 36 cells**, stopped by an API spending limit mid-grid.
-Precisely: q001 and q007 are complete across all three personas and all three
-arms; q011 is missing two cells; and a fourth question produced nothing at all.
-Head to head on the two questions every arm could express:
+Two grids, reported separately and never merged — an arm difference would
+otherwise be indistinguishable from a model difference
+([ADR 0007](docs/adr/0007-two-providers-never-one-grid.md)).
 
-| arm | accuracy | coverage |
-|---|---|---|
-| free-sql | 83% | 9/9 |
-| safe-join-contract | 100% | 8/8 |
-| strict-contract | 100% | 6/8 |
+**`gpt-4.1` — complete: 108 of 108 cells**, all twelve questions, $1.15.
+Head to head on the four questions every arm could express:
 
-Six cells per arm. One flipped cell moves an arm by seventeen points.
+| arm | head-to-head | attempted | conditional accuracy |
+|---|---|---|---|
+| safe-join-contract | 12/12 · 100% | 19/36 | 74% |
+| strict-contract | 12/12 · 100% | 23/36 | 52% |
+| free-sql | 11/12 · 92% | 36/36 | 39% |
+
+**`claude-sonnet-5` — partial: 25 of 36 cells**, stopped by an API spending
+limit mid-grid. Two questions head to head, six cells per arm, where one flipped
+cell moves an arm seventeen points. It is not retroactively completed.
 
 **Coverage is not accuracy.** The strict arm was right about everything it
 attempted and declined a quarter of the questions. A single accuracy figure would
@@ -141,7 +145,7 @@ carrying old scores forward would mix scorer versions inside one report.
 
 ## Why these evals might be lying to you
 
-The most important section here. Six concrete reasons, not hedging.
+The most important section here. Seven concrete reasons, not hedging.
 
 **1. The scorer was biased in my favour. Twice.** It compared column *names*.
 Contract arms always emit `VALUE` because the compiler names the measure; free
@@ -172,15 +176,44 @@ could.
 **5. The data is synthetic.** It cannot reproduce real CRM entropy — duplicate
 accounts, mid-quarter reassignments, half-filled custom fields.
 
-**6. The fan-out trap never fired.** q011 exists to catch an unconstrained join.
-Across four dedicated trials the free-SQL arm never committed one.
-[ADR 0003](docs/adr/0003-three-arms-and-pre-registered-reporting.md) pre-committed
-both branches before running, so the published reading is the unflattering one:
-**on this evidence the strict arm's inexpressibility bought no demonstrated
-safety benefit.**
+**6. The headline conclusion turned out to be model-dependent.** On the Claude
+grid the fan-out trap never fired: across four dedicated q011 trials the
+free-SQL arm never committed one, and
+[ADR 0003](docs/adr/0003-three-arms-and-pre-registered-reporting.md) had
+pre-committed both branches, so the published reading was the unflattering one —
+*the strict arm's inexpressibility bought no demonstrated safety benefit.*
 
-Three of those six flattered the thesis. All were caught by running against real
-output rather than synthetic cases alone. Assume more remain.
+The complete `gpt-4.1` grid says the opposite. On the five questions the strict
+arm could not express, free SQL was **wrong on 13 of 15 cells**; safe-join was
+wrong on 3, strict on 2. The refusal bought a great deal.
+
+Both readings are published. Neither is "the" answer: a governance result that
+flips between two models is a result about that pair of models, and anyone
+quoting either number without the other is quoting half of it.
+
+**7. The scorer was biased in my favour a fourth time.** The reference SQL
+renders a NULL group as `(none)`; free SQL returns `''`. Same absent segment,
+identical measure, scored wrong — and only the free arm pays, because the
+contract arms emit the compiler's canonical shape. The first run of the complete
+grid read **free-sql 33% against safe-join 74%**: clean, quotable, and wrong.
+Corrected, free-SQL's head-to-head goes from 75% to 92%.
+
+Caught because two categories looked impossible: `strict-contract` was credited
+with four `fanout_double_count` failures despite having no join surface at all.
+
+Ten further cells return the right numbers under a different projection —
+`ACCOUNT_ID` where ground truth has `ACCOUNT_NAME`. Those are **left scored
+wrong**. Converting them would repeat scorer bug #3, which was an
+over-correction in exactly this direction.
+
+Four of those seven flattered the thesis, and **four separate scorer bugs have
+now been found, three of which made the constrained arms look better**. Every
+one was caught by checking a number that looked too clean against real recorded
+output. None was caught by a synthetic test.
+
+That is the actual claim of this repository: not that these numbers are right,
+but that the machinery keeps catching itself, and that the corrections are
+published rather than quietly absorbed. Assume more remain.
 
 ---
 
@@ -231,10 +264,11 @@ how to report something.
 ## Status
 
 Working and incomplete. The warehouse, governance, tool surface, three agent
-arms, scorer, and chaos suite are built and tested. A fresh clone with no
-credentials at all runs 288 tests green in under two seconds; the rest skip with
-a stated reason rather than failing. The experiment
-has run partially. The Spider 2.0 adapter was checked and dropped
+arms, scorer, and chaos suite are built and tested (394 tests). A fresh
+clone with no credentials runs the offline suite green in under two seconds; the
+rest skip with a stated reason rather than failing. The experiment
+has run completely on `gpt-4.1` and partially on `claude-sonnet-5`. The Spider
+2.0 adapter was checked and dropped
 ([ADR 0004](docs/adr/0004-spider2-adapter-is-not-feasible.md)). All five chaos
 variants are built and the catch rate is 5 of 5 — and one of them caught a wrong
 prediction in [`chaos/README.md`](chaos/README.md) itself.

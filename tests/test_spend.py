@@ -138,3 +138,24 @@ def test_an_nvidia_model_is_not_assumed_free() -> None:
 
     with pytest.raises(KeyError, match="no published price"):
         price_of("meta/llama-3.3-70b-instruct", 100, 100)
+
+
+def test_an_unpriced_model_records_none_not_a_crash() -> None:
+    """Raising here would make a working model unusable for a whole run just
+    because nobody had looked up its rate -- a pricing gap taking down the
+    experiment."""
+    from gtm_analyst.agent.spend import Spend
+
+    s = Spend(model="mistralai/mistral-nemotron")
+    s.add(input_tokens=100, output_tokens=10)
+    assert s.as_dict()["cost_usd"] is None
+
+
+def test_an_unpriced_run_is_never_summed_as_free() -> None:
+    """None is not zero. A run whose cost is unknown must stay visibly unknown."""
+    from gtm_analyst.harness.run import spend_report
+
+    out = spend_report([{"arm": "free-sql",
+                         "spend": {"model": "x", "cost_usd": None, "api_calls": 3,
+                                   "input_tokens": 1, "output_tokens": 1}}])
+    assert "No usage recorded" in out

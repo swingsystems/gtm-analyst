@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from gtm_analyst.agent.card import AnswerCard
+from gtm_analyst.agent.card import AnswerCard, strip_sidecars
 from gtm_analyst.harness.score import _numeric_total
 
 
@@ -35,7 +35,8 @@ def _load(cards_path: Path) -> list[tuple[str, AnswerCard]]:
     loaded = []
     for item in payload:
         item = dict(item)
-        question_id = item.pop("_question_id", "?")
+        question_id = item.get("_question_id", "?")
+        item = strip_sidecars(item)
         loaded.append((question_id, AnswerCard(**item)))
     if not loaded:
         raise DemoError(f"no recorded cards in {cards_path}")
